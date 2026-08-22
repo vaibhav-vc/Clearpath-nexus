@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { dispatchSchedule, fetchSchedules, synchronizeTrainSchedule, type TrainSyncState } from '../services/api'
 import type { TrainSchedule } from '../types/route'
+import StatusBadge from './status/StatusBadge'
+import TrainSyncPanel from './TrainSyncPanel'
 
 interface Props {
   onBack: () => void
   onHistory: () => void
-}
-
-const badgeClass: Record<string, string> = {
-  CLEAR: 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300',
-  WARNING: 'border-amber-500/40 bg-amber-950/40 text-amber-300',
-  BLOCKED: 'border-red-500/40 bg-red-950/40 text-red-300',
 }
 
 export default function ScheduleBoard({ onBack, onHistory }: Props) {
@@ -74,7 +70,7 @@ export default function ScheduleBoard({ onBack, onHistory }: Props) {
       </header>
 
       <main className="mx-auto max-w-7xl p-6">
-        {error ? <div className="mb-4 rounded border border-red-600/40 bg-red-950/30 p-3 text-sm text-red-300">{error}</div> : null}
+        {error ? <div className="mb-4 rounded border border-rose-600/40 bg-rose-950/30 p-3 text-sm text-rose-300">{error}</div> : null}
         {loading ? <p className="font-mono text-slate-400">Loading schedules…</p> : null}
         <div className="grid gap-4 md:grid-cols-2">
           {items.map((item) => (
@@ -88,9 +84,7 @@ export default function ScheduleBoard({ onBack, onHistory }: Props) {
                   <p className="text-sm text-slate-300">{item.train_name}</p>
                   <p className="mt-2 font-mono text-sm">{item.source_station_code} → {item.dest_station_code}</p>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-mono font-bold ${badgeClass[item.conflict_status] ?? badgeClass.WARNING}`}>
-                  {item.conflict_status}
-                </span>
+                <StatusBadge value={item.conflict_status} domain="conflict" className="px-2.5 py-1 font-mono" />
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-950/60 p-3 font-mono text-xs">
@@ -106,11 +100,7 @@ export default function ScheduleBoard({ onBack, onHistory }: Props) {
                 </div>
               ) : null}
 
-              {syncStates[item.id] ? <div className="mt-3 rounded-lg border border-cyan-800 bg-cyan-950/20 p-3 text-xs font-mono">
-                <div className="flex items-center justify-between"><span className="text-cyan-300">ixigo supplementary sync</span><span className="text-amber-300">{syncStates[item.id].status}</span></div>
-                <p className="mt-1 text-slate-400">{syncStates[item.id].current_station ?? 'Position unavailable'} · delay {syncStates[item.id].delay_minutes ?? 'UNAVAILABLE'} min · {syncStates[item.id].freshness}</p>
-                <p className="mt-2 text-[10px] text-slate-500">{syncStates[item.id].authority_notice}</p>
-              </div> : null}
+              {syncStates[item.id] ? <TrainSyncPanel state={syncStates[item.id]} /> : null}
 
               <button type="button" onClick={() => void synchronize(item.id)} disabled={syncing === item.id} className="mt-4 w-full rounded-lg border border-cyan-700 px-4 py-2 text-xs font-semibold text-cyan-300 disabled:opacity-40">
                 {syncing === item.id ? 'Synchronizing…' : 'Sync supplementary train status'}

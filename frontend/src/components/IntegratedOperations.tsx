@@ -7,6 +7,7 @@ import {
   type OperationsOverview,
   type ShipmentTwin,
 } from '../services/api'
+import StatusBadge from './status/StatusBadge'
 
 const emptyLeg = (origin = ''): MultimodalLegInput => ({
   mode: 'RAIL',
@@ -24,12 +25,6 @@ const emptyLeg = (origin = ''): MultimodalLegInput => ({
 
 function total(values: Record<string, number>) {
   return Object.values(values).reduce((sum, value) => sum + value, 0)
-}
-
-function StateBadge({ value }: { value: string }) {
-  const danger = value.includes('BLOCK') || value === 'HOLD'
-  const warning = value.includes('REVIEW') || value === 'WARNING'
-  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${danger ? 'border-rose-700 bg-rose-950 text-rose-300' : warning ? 'border-amber-700 bg-amber-950 text-amber-300' : 'border-cyan-700 bg-cyan-950 text-cyan-300'}`}>{value}</span>
 }
 
 export default function IntegratedOperations() {
@@ -114,7 +109,7 @@ export default function IntegratedOperations() {
 
     <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <div className="flex items-center justify-between"><div><h3 className="font-bold text-white">Multimodal plan evaluator</h3><p className="mt-1 text-xs text-slate-500">Factory → road → rail → port → vessel. Only values you enter are used.</p></div><StateBadge value="OPERATOR_INPUT" /></div>
+        <div className="flex items-center justify-between"><div><h3 className="font-bold text-white">Multimodal plan evaluator</h3><p className="mt-1 text-xs text-slate-500">Factory → road → rail → port → vessel. Only values you enter are used.</p></div><StatusBadge value="OPERATOR_INPUT" domain="source" /></div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Plan name" className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" />
           <input value={origin} onChange={(event) => { setOrigin(event.target.value); if (legs.length === 1 && !legs[0].origin) setLeg(0, { origin: event.target.value }) }} placeholder="Overall origin" className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" />
@@ -137,10 +132,10 @@ export default function IntegratedOperations() {
       </section>
 
       <section className="rounded-xl border border-slate-800 bg-slate-900 p-5"><h3 className="font-bold text-white">SourceLine coverage</h3>{overview ? <><p className="mt-4 text-4xl font-bold text-emerald-300">{overview.traceability.traced_records} / {overview.traceability.total_records}</p><p className="mt-1 text-sm text-slate-400">{overview.traceability.percent}% traced records</p><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full bg-emerald-500" style={{ width: `${overview.traceability.percent}%` }} /></div><p className="mt-3 text-[11px] text-slate-500">{overview.traceability.basis}</p></> : <p className="mt-4 text-sm text-slate-500">Loading owned evidence…</p>}
-        <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-slate-400">Shipment state projection</h4><div className="mt-2 space-y-2">{twin.map((shipment) => <div key={shipment.shipment_id} className="rounded-lg bg-slate-950 p-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">{shipment.reference}</span><StateBadge value={shipment.status} /></div><p className="mt-1 text-[11px] text-slate-500">State source {shipment.state_source} · {shipment.open_event_count} open events</p></div>)}{twin.length === 0 && <p className="text-xs text-slate-500">No owned shipments. This is an empty state, not a fabricated twin.</p>}</div>
+        <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-slate-400">Shipment state projection</h4><div className="mt-2 space-y-2">{twin.map((shipment) => <div key={shipment.shipment_id} className="rounded-lg bg-slate-950 p-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">{shipment.reference}</span><StatusBadge value={shipment.status} domain="lifecycle" /></div><p className="mt-1 text-[11px] text-slate-500">State source {shipment.state_source} · {shipment.open_event_count} open events</p></div>)}{twin.length === 0 && <p className="text-xs text-slate-500">No owned shipments. This is an empty state, not a fabricated twin.</p>}</div>
       </section>
     </div>
 
-    <section className="rounded-xl border border-slate-800 bg-slate-900 p-5"><h3 className="font-bold text-white">Reproducible multimodal decisions</h3><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <article key={plan.id} className="rounded-xl border border-slate-800 bg-slate-950 p-4"><div className="flex items-center justify-between gap-2"><h4 className="font-semibold text-white">{plan.name}</h4><StateBadge value={plan.recommendation} /></div><p className="mt-2 text-xs text-slate-400">{plan.origin} → {plan.destination}</p><p className="mt-2 text-[11px] text-slate-500">{plan.legs.length} legs · {plan.total_distance_km.toFixed(1)} km · {Math.round(plan.total_eta_minutes / 60)} h</p><p className="mt-1 text-[11px] text-slate-500">Cost {plan.total_cost == null ? 'UNAVAILABLE' : `${plan.cost_currency} ${plan.total_cost.toLocaleString()}`} · risk {plan.overall_risk_score ?? 'UNAVAILABLE'}</p><p className="mt-2 text-[11px] text-cyan-400">Traceability {plan.traceability_summary.traced_inputs} / {plan.traceability_summary.expected_inputs}</p></article>)}{plans.length === 0 && <p className="text-xs text-slate-500">No multimodal plans have been evaluated.</p>}</div></section>
+    <section className="rounded-xl border border-slate-800 bg-slate-900 p-5"><h3 className="font-bold text-white">Reproducible multimodal decisions</h3><div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <article key={plan.id} className="rounded-xl border border-slate-800 bg-slate-950 p-4"><div className="flex items-center justify-between gap-2"><h4 className="font-semibold text-white">{plan.name}</h4><StatusBadge value={plan.recommendation} /></div><p className="mt-2 text-xs text-slate-400">{plan.origin} → {plan.destination}</p><p className="mt-2 text-[11px] text-slate-500">{plan.legs.length} legs · {plan.total_distance_km.toFixed(1)} km · {Math.round(plan.total_eta_minutes / 60)} h</p><p className="mt-1 text-[11px] text-slate-500">Cost {plan.total_cost == null ? 'UNAVAILABLE' : `${plan.cost_currency} ${plan.total_cost.toLocaleString()}`} · risk {plan.overall_risk_score ?? 'UNAVAILABLE'}</p><p className="mt-2 text-[11px] text-cyan-400">Traceability {plan.traceability_summary.traced_inputs} / {plan.traceability_summary.expected_inputs}</p></article>)}{plans.length === 0 && <p className="text-xs text-slate-500">No multimodal plans have been evaluated.</p>}</div></section>
   </section>
 }

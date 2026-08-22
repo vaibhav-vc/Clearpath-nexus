@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { ComplianceState, CostSourceType, MultimodalSourceType } from '../types/status'
 import type {
   RouteEvaluateResponse,
   RouteSuggestResponse,
@@ -335,10 +336,12 @@ export interface MultimodalLegInput {
   distance_km: number
   estimated_minutes: number
   cost_amount?: number | null
-  cost_source_type: 'VERIFIED_TARIFF' | 'OPERATOR_INPUT' | 'UNAVAILABLE'
+  cost_source_type: CostSourceType
   risk_score?: number | null
-  risk_source_type: 'LIVE_PROVIDER' | 'PUBLIC_OPEN_DATA' | 'CACHED_PROVIDER' | 'OPERATOR_INPUT' | 'SEEDED_BASELINE' | 'DERIVED' | 'SIMULATED' | 'UNAVAILABLE'
-  compliance_status: 'PASSED' | 'WARNING' | 'BLOCKED' | 'MANUAL_REVIEW' | 'NOT_ASSESSED'
+  // Narrower than CanonicalSourceType on purpose: this is a request payload and
+  // the backend rejects OFFLINE_COMPUTED / IMPORTED_DOCUMENT with a 422.
+  risk_source_type: MultimodalSourceType
+  compliance_status: ComplianceState
   compliance_check_id?: string | null
   source_provider?: string | null
   source_dataset?: string | null
