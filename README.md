@@ -16,6 +16,7 @@ ClearPath Nexus is an explainable freight operations intelligence and decision-s
 - [Quick start](#quick-start)
 - [Verification](#verification)
 - [Data honesty](#data-honesty)
+- [From the original concept to v6.0](#from-the-original-concept-to-v60)
 - [Project layout](#project-layout)
 - [Documentation](#documentation)
 - [License](#license)
@@ -138,6 +139,43 @@ python scripts/evaluate_delay_model.py
 Source states distinguish `LIVE_PROVIDER`, `PUBLIC_OPEN_DATA`, `CACHED_PROVIDER`, `OPERATOR_INPUT`, `SEEDED_BASELINE`, `DERIVED`, `SIMULATED`, `OFFLINE_COMPUTED`, `IMPORTED_DOCUMENT`, and `UNAVAILABLE`. Provider-specific raw states remain stored separately.
 
 The current segment engineering constraints, static congestion values, and historical-delay factors are seeded demonstration baselines. OpenStreetMap geometry does not certify bridge/OHE clearances, structure gauge, or axle-load capacity. ComplianceGuard is decision support, not legal advice, and it never invents penalty amounts.
+
+## From the original concept to v6.0
+
+The project began as "AI-Powered Railway Intelligence Command Center", an MVP concept covering route planning, environmental risk, port synchronization, and reliability scoring. Much of that survived intact. Some of it changed once the system had to defend its own numbers, and a good deal was added that the original scope never described.
+
+### Carried over unchanged
+
+The Route Reliability Index still weights exactly as originally specified — weather `0.40`, port alignment `0.30`, congestion `0.15`, historical delay `0.15` — and those values live in `backend/app/core/config.py` today. A failed physical clearance check still overrides the numerical score outright rather than degrading it. Cargo clearance validation, weather and dust-storm intelligence, space-weather telemetry, port synchronization, the interactive Leaflet map, the threat simulator, and the React/FastAPI/Postgres/MIT foundation all shipped as described.
+
+### Changed in practice
+
+| Original concept | v6.0 as built |
+| --- | --- |
+| Route marked `BLOCKED` | `HARD_BLOCKED`, which overrides the numerical score rather than sitting alongside it |
+| PostgreSQL | Postgres + **PostGIS** for geospatial work, plus **Redis** for provider caching and circuit breakers |
+| `npm install` / `npm run dev` at the repository root | **pnpm** inside `frontend/`, or `docker compose up --build` for the whole stack |
+| `database/` directory for schema and migrations | Alembic migrations under `backend/alembic` |
+| React | React 19 |
+| Phase 3: "AI Delay Prediction" | The ML pipeline exists — versioned datasets, training runs, benchmarking, promotion gates — but **every registered model is still a `CANDIDATE`**. Deterministic prediction remains in control, because the promotion gates require real operational rows and the current dataset is entirely simulated. |
+
+### Added beyond the original scope
+
+Nothing in the original concept described where a number came from. Most of what v6 adds exists to answer that:
+
+- **Nexus SourceLine** — immutable decision snapshots, lineage edges, checksums, and traceability counts
+- **Nexus ComplianceGuard** — document and permit checks, rule-source versioning, reasoned override audit records
+- **LiveOps** — durable observations, provider circuit breakers, operational events, an owner-scoped control center
+- **Multimodal v5.4** — road, rail, port, and sea legs with continuity validation and per-leg evidence
+- **Integrated Operations v6** — one owner-scoped view across every subsystem
+- **Supabase authentication** with backend-authorized, owner-scoped records
+- **A Kotlin/Compose Android client**, with local fallback explicitly labelled `OFFLINE_COMPUTED`
+- **The source-state vocabulary** described under [Data honesty](#data-honesty), so an unavailable provider reports itself instead of being quietly filled in
+- **Optional ixigo train synchronization**, fail-closed at `AUTH_REQUIRED` and never treated as freight authority
+
+### Still out of scope
+
+Unchanged from the original decision: track maintenance forecasting, rail wear prediction, locomotive health monitoring, passenger booking, crew scheduling, and ticketing integrations. The focus remains freight decision support.
 
 ## Project layout
 
