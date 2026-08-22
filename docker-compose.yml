@@ -3,7 +3,7 @@ services:
     image: postgis/postgis:15-3.4
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-clearpath_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearpath_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-clearpath_nexus_db}
     ports:
       - "5432:5432"
@@ -13,43 +13,195 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      PROJECT_NAME: ${PROJECT_NAME:-ClearPath Nexus Engine}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in .env}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
+      SUPABASE_JWT_AUDIENCE: ${SUPABASE_JWT_AUDIENCE:-authenticated}
+      AUTH_DISABLED: ${AUTH_DISABLED:-false}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      DEMO_DATA_ENABLED: ${DEMO_DATA_ENABLED:-false}
+      MARITIME_BERTH_DATA_FEED: ${MARITIME_BERTH_DATA_FEED:-}
+      RAILWAY_OPERATIONS_FEED: ${RAILWAY_OPERATIONS_FEED:-}
+      AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-clearpath_session}
+      AUTH_REFRESH_COOKIE_NAME: ${AUTH_REFRESH_COOKIE_NAME:-clearpath_refresh}
+      CSRF_COOKIE_NAME: ${CSRF_COOKIE_NAME:-clearpath_csrf}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-["localhost","127.0.0.1","backend"]}
       POSTGRES_HOST: postgres
-      REDIS_HOST: redis
+      POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-clearpath_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearpath_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-clearpath_nexus_db}
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-clearpath_user}:${POSTGRES_PASSWORD:-clearpath_password}@postgres:5432/${POSTGRES_DB:-clearpath_nexus_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      NOAA_SPACE_WEATHER_FEED_URL: ${NOAA_SPACE_WEATHER_FEED_URL:-https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json}
+      RAILRADAR_API_KEY: ${RAILRADAR_API_KEY:-}
+      RAILRADAR_BASE_URL: ${RAILRADAR_BASE_URL:-https://api.railradar.in/v1}
+      RAILRADAR_CACHE_TTL_SECONDS: ${RAILRADAR_CACHE_TTL_SECONDS:-7200}
+      RAILRADAR_MONTHLY_BUDGET: ${RAILRADAR_MONTHLY_BUDGET:-900}
+      IXIGO_SYNC_ENABLED: ${IXIGO_SYNC_ENABLED:-false}
+      IXIGO_TRAIN_STATUS_URL: ${IXIGO_TRAIN_STATUS_URL:-}
+      IXIGO_API_KEY: ${IXIGO_API_KEY:-}
+      IXIGO_SYNC_INTERVAL_SECONDS: ${IXIGO_SYNC_INTERVAL_SECONDS:-900}
+      AISSTREAM_API_KEY: ${AISSTREAM_API_KEY:-}
+      AIS_COLLECTOR_ENABLED: ${AIS_COLLECTOR_ENABLED:-true}
+      LIVE_CONGESTION_ENABLED: ${LIVE_CONGESTION_ENABLED:-true}
+      LIVE_CONGESTION_WEIGHT: ${LIVE_CONGESTION_WEIGHT:-0.6}
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in .env}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-5}
+      LOGIN_RATE_WINDOW_SECONDS: ${LOGIN_RATE_WINDOW_SECONDS:-60}
+      REGISTRATION_RATE_LIMIT: ${REGISTRATION_RATE_LIMIT:-3}
+      REGISTRATION_RATE_WINDOW_SECONDS: ${REGISTRATION_RATE_WINDOW_SECONDS:-3600}
+      WEIGHT_WEATHER_RISK: ${WEIGHT_WEATHER_RISK:-0.40}
+      WEIGHT_PORT_ALIGNMENT: ${WEIGHT_PORT_ALIGNMENT:-0.30}
+      WEIGHT_CORRIDOR_CONGESTION: ${WEIGHT_CORRIDOR_CONGESTION:-0.15}
+      WEIGHT_HISTORICAL_DELAY: ${WEIGHT_HISTORICAL_DELAY:-0.15}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
-    command: >
-      sh -c "python scripts/seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+        condition: service_healthy
+    command: sh scripts/start.sh
+
+  live-ingestor:
+    build: ./backend
+    healthcheck:
+      disable: true
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-clearpath_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-clearpath_nexus_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      LIVE_DATA_ENABLED: ${LIVE_DATA_ENABLED:-true}
+      ENABLE_LIVE_WEATHER: ${ENABLE_LIVE_WEATHER:-true}
+      ENABLE_LIVE_RAIL: ${ENABLE_LIVE_RAIL:-true}
+      ENABLE_LIVE_AIS: ${ENABLE_LIVE_AIS:-false}
+      ENABLE_EVENT_ENGINE: ${ENABLE_EVENT_ENGINE:-true}
+      LIVE_INGEST_INTERVAL_SECONDS: ${LIVE_INGEST_INTERVAL_SECONDS:-600}
+      PROVIDER_TIMEOUT_SECONDS: ${PROVIDER_TIMEOUT_SECONDS:-8}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-2}
+      PROVIDER_FAILURE_THRESHOLD: ${PROVIDER_FAILURE_THRESHOLD:-3}
+      PROVIDER_CIRCUIT_COOLDOWN_SECONDS: ${PROVIDER_CIRCUIT_COOLDOWN_SECONDS:-120}
+      NOAA_SPACE_WEATHER_FEED_URL: ${NOAA_SPACE_WEATHER_FEED_URL:-https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: python -m app.workers.live_ingestor
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in .env}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set VITE_SUPABASE_ANON_KEY in .env}
+        VITE_LOCAL_DEMO_MODE: ${AUTH_DISABLED:-false}
     ports:
       - "5173:5173"
     environment:
       VITE_API_BASE_URL: /api/v1
       VITE_BACKEND_PROXY_TARGET: http://backend:8000
-      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in .env}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set VITE_SUPABASE_ANON_KEY in .env}
     depends_on:
       backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5173/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  train-synchronizer:
+    build: ./backend
+    profiles: ["ixigo"]
+    healthcheck:
+      disable: true
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-clearpath_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-clearpath_nexus_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      IXIGO_SYNC_ENABLED: ${IXIGO_SYNC_ENABLED:-false}
+      IXIGO_TRAIN_STATUS_URL: ${IXIGO_TRAIN_STATUS_URL:-}
+      IXIGO_API_KEY: ${IXIGO_API_KEY:-}
+      IXIGO_SYNC_INTERVAL_SECONDS: ${IXIGO_SYNC_INTERVAL_SECONDS:-900}
+      PROVIDER_TIMEOUT_SECONDS: ${PROVIDER_TIMEOUT_SECONDS:-8}
+      PROVIDER_MAX_RETRIES: ${PROVIDER_MAX_RETRIES:-2}
+      PROVIDER_FAILURE_THRESHOLD: ${PROVIDER_FAILURE_THRESHOLD:-3}
+      PROVIDER_CIRCUIT_COOLDOWN_SECONDS: ${PROVIDER_CIRCUIT_COOLDOWN_SECONDS:-120}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: python -m app.workers.train_synchronizer
+    restart: unless-stopped
+
+  https:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
         condition: service_started
 
 volumes:
   nexus_pg_data:
+  caddy_data:
+  caddy_config:

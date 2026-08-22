@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+# rootdir is backend/, so "import app" resolves without installing the package.
+pythonpath = ["."]
+testpaths = ["app/tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,6 +1,6 @@
 import type { ConditionType } from '../maps/conditionSymbols'
 import type { MapCondition, SegmentPath, Station } from '../types/route'
-import { API_BASE_URL } from './api'
+import { fetchMapConditions } from './api'
 
 export interface OpenMeteoCurrent {
   temperature_2m: number
@@ -313,8 +313,7 @@ export async function fetchLiveMapConditions(opts: {
   const allConditions: MapCondition[] = []
 
   if (points.length === 0) {
-    const fallback = { lat: 21.1458, lon: 79.0882, id: 'default' }
-    points.push(fallback)
+    return allConditions
   }
 
   const weatherResults = await Promise.allSettled(
@@ -373,13 +372,7 @@ export async function fetchMapConditionsFromApi(
 ): Promise<MapCondition[] | null> {
   try {
     const points = sampleRoutePoints(segments, stations)
-    const resp = await fetch(`${API_BASE_URL}/weather/map-conditions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ points, destination_code: destinationCode }),
-    })
-    if (!resp.ok) return null
-    const data = await resp.json()
+    const data = await fetchMapConditions({ points, destination_code: destinationCode })
     return data.conditions as MapCondition[]
   } catch {
     return null
@@ -392,6 +385,6 @@ export async function resolveMapConditions(opts: {
   destinationCode?: string
 }): Promise<MapCondition[]> {
   const fromApi = await fetchMapConditionsFromApi(opts.segments, opts.stations, opts.destinationCode)
-  if (fromApi && fromApi.length > 0) return fromApi
-  return fetchLiveMapConditions(opts)
+  if (fromApi) return fromApi
+  throw new Error('Map-condition provider is unavailable; no operational fallback is shown.')
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP is permitted ONLY for local development hosts. Android 9+
+  blocks cleartext by default, which otherwise makes the dev backend fail
+  with an opaque connection error.
+
+  Everything else stays HTTPS-only, so this cannot weaken production.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>     <!-- emulator -> host -->
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <!-- Add your laptop's LAN IP here when testing on a physical device. -->
+    </domain-config>
+
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

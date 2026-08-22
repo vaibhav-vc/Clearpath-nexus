@@ -5,11 +5,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from geoalchemy2 import WKTElement
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-from app.core.database import AsyncSessionLocal, engine
-from app.models.route import Base, LineSegment, PortBerth, Station
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.core.security import get_password_hash
+from app.models.route import LineSegment, PortBerth, Station
+from app.models.user import User
 
 
 STATIONS = [
@@ -32,25 +34,35 @@ SEGMENTS = [
 
 
 async def seed() -> None:
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+    if not settings.DEMO_DATA_ENABLED:
+        raise RuntimeError("Demo data is disabled. Run Alembic migrations and set DEMO_DATA_ENABLED=true locally.")
 
     async with AsyncSessionLocal() as session:
+        existing_stations = {
+            station.code: station
+            for station in (await session.execute(select(Station))).scalars().all()
+        }
         station_map: dict[str, Station] = {}
         for name, code, lat, lon in STATIONS:
-            station = Station(
-                id=uuid.uuid4(),
-                name=name,
-                code=code,
-                coordinates=WKTElement(f"POINT({lon} {lat})", srid=4326),
-            )
-            session.add(station)
+            station = existing_stations.get(code)
+            if station is None:
+                station = Station(
+                    id=uuid.uuid4(),
+                    name=name,
+                    code=code,
+                    coordinates=WKTElement(f"POINT({lon} {lat})", srid=4326),
+                )
+                session.add(station)
             station_map[code] = station
         await session.flush()
 
+        existing_pairs = {
+            (segment.source_station_id, segment.dest_station_id)
+            for segment in (await session.execute(select(LineSegment))).scalars().all()
+        }
         for src, dst, h, w, wt, cong, delay, coords in SEGMENTS:
+            if (station_map[src].id, station_map[dst].id) in existing_pairs:
+                continue
             line_wkt = "LINESTRING(" + ", ".join(f"{lon} {lat}" for lat, lon in coords) + ")"
             segment = LineSegment(
                 id=uuid.uuid4(),
@@ -74,7 +86,25 @@ async def seed() -> None:
             window_start=now + timedelta(hours=12),
             window_end=now + timedelta(hours=48),
         )
-        session.add(berth)
+        existing_berth = await session.scalar(
+            select(PortBerth).where(PortBerth.berth_identifier == berth.berth_identifier)
+        )
+        if existing_berth is None:
+            session.add(berth)
+
+        if settings.BOOTSTRAP_ADMIN_EMAIL and settings.BOOTSTRAP_ADMIN_PASSWORD:
+            admin_email = settings.BOOTSTRAP_ADMIN_EMAIL.lower()
+            admin = await session.scalar(select(User).where(User.email == admin_email))
+            if admin is None:
+                session.add(
+                    User(
+                        email=admin_email,
+                        hashed_password=get_password_hash(settings.BOOTSTRAP_ADMIN_PASSWORD),
+                        full_name="ClearPath Administrator",
+                        role="admin",
+                        is_active=True,
+                    )
+                )
         await session.commit()
         print("Database seeded successfully.")
 

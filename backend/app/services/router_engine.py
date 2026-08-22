@@ -56,12 +56,20 @@ def validate_cargo_clearance(
     return {"status": "APPROVED"}
 
 
+def calculate_segment_cost(seg: LineSegment) -> float:
+    """Calculate multi-criteria impedance weight for a railway track segment."""
+    base_hours = 4.5
+    delay_hours = float(seg.historical_delay_hours)
+    congestion_penalty = max(0.0, float(seg.congestion_factor) - 1.0) * 3.0
+    return base_hours + delay_hours * 1.2 + congestion_penalty
+
+
 def find_route_segments(
     segments: list[LineSegment],
     source_id: UUID,
     dest_id: UUID,
 ) -> list[LineSegment]:
-    """Simple BFS path finder over the rail network graph."""
+    """Weighted multi-criteria Dijkstra path finder optimizing speed, congestion, and reliability."""
     if source_id == dest_id:
         return []
 
@@ -69,19 +77,32 @@ def find_route_segments(
     for seg in segments:
         adjacency.setdefault(seg.source_station_id, []).append(seg)
 
-    queue: list[tuple[UUID, list[LineSegment]]] = [(source_id, [])]
-    visited: set[UUID] = {source_id}
+    import heapq
 
-    while queue:
-        current, path = queue.pop(0)
+    # Priority queue storing (cumulative_cost, node_id, path_segments)
+    pq: list[tuple[float, int, UUID, list[LineSegment]]] = []
+    counter = 0
+    heapq.heappush(pq, (0.0, counter, source_id, []))
+    best_cost: dict[UUID, float] = {source_id: 0.0}
+
+    while pq:
+        cost, _, current, path = heapq.heappop(pq)
+
+        if current == dest_id:
+            return path
+
+        if cost > best_cost.get(current, float("inf")):
+            continue
+
         for seg in adjacency.get(current, []):
             next_id = seg.dest_station_id
-            new_path = path + [seg]
-            if next_id == dest_id:
-                return new_path
-            if next_id not in visited:
-                visited.add(next_id)
-                queue.append((next_id, new_path))
+            seg_cost = calculate_segment_cost(seg)
+            new_cost = cost + seg_cost
+
+            if new_cost < best_cost.get(next_id, float("inf")):
+                best_cost[next_id] = new_cost
+                counter += 1
+                heapq.heappush(pq, (new_cost, counter, next_id, path + [seg]))
 
     return []
 
@@ -144,7 +165,9 @@ def segment_length_km(coords: list[list[float]]) -> float:
     return round(total, 1)
 
 
-def snap_to_nearest_segment(lat: float, lon: float, segments: list[LineSegment]) -> SnapResult | None:
+def snap_to_nearest_segment(
+    lat: float, lon: float, segments: list[LineSegment]
+) -> SnapResult | None:
     point = Point(lon, lat)
     best: SnapResult | None = None
 
@@ -175,8 +198,6 @@ def resolve_train_position(
     lon: float | None = None,
 ) -> ResolvedPosition | None:
     station_by_code = {s.code: s for s in stations}
-    segment_by_id = {s.id: s for s in segments}
-
     if mode == "station":
         if not station_code:
             return None
@@ -233,7 +254,7 @@ def find_all_route_segments(
     segments: list[LineSegment],
     source_id: UUID,
     dest_id: UUID,
-    max_paths: int = 3,
+    max_paths: int = 5,
 ) -> list[list[LineSegment]]:
     if source_id == dest_id:
         return [[]]
@@ -245,7 +266,7 @@ def find_all_route_segments(
     results: list[list[LineSegment]] = []
 
     def dfs(current: UUID, path: list[LineSegment], visited: set[UUID]) -> None:
-        if len(results) >= max_paths:
+        if len(results) >= max_paths * 2:
             return
         if current == dest_id:
             results.append(list(path))
@@ -261,7 +282,8 @@ def find_all_route_segments(
             visited.remove(next_id)
 
     dfs(source_id, [], {source_id})
-    return results
+    results.sort(key=lambda p: sum(calculate_segment_cost(s) for s in p))
+    return results[:max_paths]
 
 
 def build_track_detail(

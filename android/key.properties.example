@@ -1,0 +1,11 @@
+# Copy this file to key.properties (which is gitignored) and fill in your
+# own values. Release builds intentionally fail without this file so signing
+# credentials cannot be accidentally omitted from a production artifact:
+#
+#   keytool -genkeypair -v -keystore app/release.keystore -alias <your-alias> \
+#     -keyalg RSA -keysize 2048 -validity 10000
+#
+storeFile=release.keystore
+storePassword=change_me
+keyAlias=your_alias
+keyPassword=change_me

@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "error": { "code": "RATE_LIMITED", "message": "Request rate exceeded your plan quota" },
+  "meta": { "traceId": "9772f1c9-6ec6-4d9f-b269-a5210f33ec73", "timestamp": "2026-08-21T08:14:00+05:30", "executionTime": 5, "source": "database" }
+}

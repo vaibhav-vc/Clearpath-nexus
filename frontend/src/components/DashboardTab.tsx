@@ -12,15 +12,7 @@ import TrackIntelPanel from './TrackIntelPanel'
 import { useLiveMapConditions } from '../hooks/useLiveMapConditions'
 import { conditionsToZones } from '../maps/mapSymbolGuide'
 import { findNearestStation } from '../utils/nearestStation'
-
-const FALLBACK_STATIONS: Station[] = [
-  { id: 's-ngp', name: 'Nagpur Junction', code: 'NGP', lat: 21.1458, lon: 79.0882 },
-  { id: 's-bsl', name: 'Bhusaval Junction', code: 'BSL', lat: 21.0455, lon: 75.7849 },
-  { id: 's-mmr', name: 'Manmad Junction', code: 'MMR', lat: 20.25, lon: 74.4333 },
-  { id: 's-kyn', name: 'Kalyan Junction', code: 'KYN', lat: 19.2433, lon: 73.1305 },
-  { id: 's-jnpt', name: 'Mumbai Port (JNPT)', code: 'JNPT', lat: 18.9497, lon: 72.9512 },
-  { id: 's-pune', name: 'Pune Junction', code: 'PUNE', lat: 18.5285, lon: 73.874 },
-]
+import DataTrustCard from './DataTrustCard'
 
 export default function CommandDashboard() {
   const [stations, setStations] = useState<Station[]>([])
@@ -44,7 +36,7 @@ export default function CommandDashboard() {
   const [simScore, setSimScore] = useState<number | undefined>()
   const [simAlerts, setSimAlerts] = useState<string[]>([])
 
-  const stationList = stations.length > 0 ? stations : FALLBACK_STATIONS
+  const stationList = stations
 
   useEffect(() => {
     fetchStations()
@@ -130,6 +122,7 @@ export default function CommandDashboard() {
       setSimScore(undefined)
       setSimAlerts([])
       setMapReady(true)
+
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Route suggestion failed')
     } finally {
@@ -447,8 +440,8 @@ export default function CommandDashboard() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-600 bg-slate-800/80">
                   <span className="text-xs font-mono font-bold text-slate-400">MAP</span>
                 </div>
-                <p className="font-mono text-sm text-slate-400">Run an evaluation to render the corridor on Google Maps</p>
-                <p className="text-xs text-slate-500">Map tiles stream from Google to your browser — not through our API</p>
+                <p className="font-mono text-sm text-slate-400">Run an evaluation to render the corridor on the operations map</p>
+                <p className="text-xs text-slate-500">Map tiles stream from OpenStreetMap to your browser — not through our API</p>
               </div>
             )}
           </div>
@@ -476,6 +469,10 @@ export default function CommandDashboard() {
               <MetricBar label="Historical" value={result.score_breakdown.historical} color="#34D399" />
             </div>
           )}
+
+          {result?.provenance_summary ? (
+            <DataTrustCard routeId={result.route_id} summary={result.provenance_summary} />
+          ) : null}
 
           {result?.environmental_alerts && result.environmental_alerts.length > 0 && (
             <div className="glass-panel rounded-xl p-4 border-red-900/50">

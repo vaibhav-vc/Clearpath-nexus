@@ -24,6 +24,15 @@ data class RouteEvaluateResponse(
     val scoreBreakdown: ScoreBreakdown? = null,
     val segments: List<SegmentPath> = emptyList(),
     val environmentalAlerts: List<String> = emptyList(),
+    val provenanceSummary: ProvenanceSummary? = null,
+)
+
+data class ProvenanceSummary(
+    val decisionRecordId: String,
+    val tracedInputs: Int,
+    val totalInputs: Int,
+    val coveragePct: Double,
+    val warnings: List<String>,
 )
 
 data class SegmentPath(

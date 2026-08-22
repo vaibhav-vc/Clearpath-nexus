@@ -1,273 +1,101 @@
-# ClearPath Nexus 🚆🌦️🛰️
+# ClearPath Nexus v6.0
 
-AI-Powered Railway Intelligence Command Center
+ClearPath Nexus is an explainable freight operations intelligence and decision-support platform combining rail-route feasibility, cargo clearance, environmental risk, congestion, port coordination, scheduling, information provenance, compliance review, and dispatch lifecycle management.
 
-ClearPath Nexus is an intelligent railway logistics platform that combines route planning, environmental risk analysis, port synchronization, and real-time operational intelligence into a unified command center. The platform enables freight operators, logistics managers, and railway coordinators to make faster, safer, and more reliable routing decisions through AI-assisted analysis and dynamic risk monitoring.
+It is not railway signalling, Kavach/ATP, electronic interlocking, official dispatch control, customs authority, a certified engineering source, or legal authority. Qualified humans retain final operational and legal responsibility.
 
-## 📌 Overview
+## What is implemented
 
-Modern freight railway operations often rely on fragmented systems, spreadsheets, manual coordination, and delayed environmental intelligence. ClearPath Nexus centralizes these workflows into a single platform capable of:
+- Supabase-issued authentication tokens verified by FastAPI; operational records remain backend-authorized and owner-scoped.
+- `/api/v1` FastAPI API with Postgres/PostGIS, SQLAlchemy 2, Redis, Alembic, WebSockets, health/readiness, and metrics.
+- Deterministic cargo height, width, and weight clearance. A physical failure produces `HARD_BLOCKED` and overrides the numerical route score.
+- Dijkstra rail routing, route evaluation/suggestion/history, dispatch, train schedules, and conflict detection.
+- Deterministic reliability scoring using weather, congestion, historical baseline, and port alignment. Missing port data is excluded and weights are renormalized.
+- Open-Meteo/OpenWeather weather adapters, NOAA SWPC supplemental telemetry, optional RailRadar/AIS signals, explicit provider-health states, and honest unavailable states.
+- Nexus SourceLine: immutable decision snapshots, normalized source types, freshness, checksums, decision use/exclusion, lineage edges, source catalog, traceability counts, and historical evidence APIs.
+- Nexus ComplianceGuard: deterministic document completeness, document/permit expiry versus ETA, declaration and approval checks, rule-source versioning, owner-scoped history, and reasoned override audit records.
+- LiveOps: normalized provider envelopes, durable observations, Redis latest-value cache, circuit breakers, a single background ingestor, operational events/SSE, explicit shipment tracking consent, and an owner-scoped control center.
+- Production ML foundation: versioned datasets/training runs/models/predictions, chronological splits, leakage checks, deterministic benchmarking, checksummed artifacts, promotion gates, SourceLine prediction evidence, and deterministic fallback.
+- Predictive Intelligence v5.3: empirical intervals that fail closed without trusted calibration, exact deterministic factor decomposition, owner-scoped drift monitoring, and manual-only retraining readiness.
+- Multimodal v5.4: operator/provider-evidence plans across road, rail, port, and sea legs with continuity validation, per-leg ETA/cost/risk/compliance/source state, hard-block precedence, counted traceability, lineage, and immutable input snapshots.
+- Integrated Operations v6: one owner-scoped overview across routes, schedules, shipments, events, compliance, predictive ETA, multimodal plans, providers, audit export, and an explicitly limited shipment-state projection.
+- Optional authorized ixigo train synchronization with a fail-closed `AUTH_REQUIRED` state, whitelisted passenger-status fields, SourceLine evidence, schedule ownership checks, manual sync API, and a separately enabled worker profile. It is never freight authority or train control.
+- Concurrent provider resolution, route-specific client time budgets, normalized low-cardinality metrics paths, paginated/batched compliance history, and lazy-loaded web modules.
+- React 19/Vite/Tailwind/Leaflet web operations console, Source Trust Center, evidence drawer, and ComplianceGuard review.
+- Kotlin/Compose Android client using Supabase auth and FastAPI operational APIs. Local fallback is labelled `OFFLINE_COMPUTED`.
 
-- Evaluating physical cargo clearance constraints
-- Monitoring weather and environmental hazards
-- Synchronizing rail operations with port schedules
-- Calculating route reliability scores
-- Detecting congestion risks
-- Tracking dust storms and space-weather disruptions
-- Suggesting optimized routing alternatives
+See [product truth](docs/PRODUCT_TRUTH.md), [LiveOps](docs/LIVEOPS.md), [ML](docs/ML.md), [multimodal/v6](docs/MULTIMODAL_V6.md), [ixigo synchronization](docs/IXIGO_TRAIN_SYNC.md), [SourceLine](docs/SOURCELINE.md), [ComplianceGuard](docs/COMPLIANCEGUARD.md), and [provider attribution](docs/DATA_SOURCES_AND_ATTRIBUTION.md).
 
-The goal is to reduce delays, improve reliability, and provide actionable intelligence before cargo begins transit.
+## Quick start
 
-## 🎯 Problem Statement
+Copy `.env.example` to `.env` and provide your own Supabase project settings. Never expose a Supabase service-role key to either client.
 
-Freight operators must answer critical operational questions before dispatching cargo:
-
-- Can the cargo physically clear bridges and tunnels?
-- Will the target port be available upon arrival?
-- Are weather conditions likely to cause delays?
-- Is congestion building along the corridor?
-- Could dust storms reduce visibility?
-- Will geomagnetic disturbances impact railway telemetry systems?
-
-Traditional planning methods are slow, fragmented, and reactive.
-
-ClearPath Nexus transforms this process into an intelligent, automated workflow.
-
-## ✨ Key Features
-
-### 1. Smart Cargo Route Planner
-- Cargo dimension validation
-- Clearance checking
-- Tunnel and bridge compatibility analysis
-- Route approval/blocking system
-
-### 2. Port Synchronization Engine
-- Vessel schedule integration
-- Port berth availability tracking
-- Rail-to-port timing analysis
-- Mismatch detection alerts
-
-### 3. Route Reliability Scoring
-Generates a reliability score based on:
-- Weather conditions
-- Port synchronization
-- Congestion levels
-- Historical delay patterns
-
-### 4. Multi-Layer Weather Intelligence
-Monitors:
-- Rainfall
-- Storm systems
-- Wind speeds
-- Extreme temperatures
-- Visibility conditions
-
-### 5. Dust Storm Risk Monitoring
-Specialized environmental intelligence for:
-- Desert corridors
-- Low-visibility events
-- Airborne particulate hazards
-
-### 6. Solar Storm Telemetry Monitoring
-Tracks:
-- Geomagnetic disturbances
-- Space weather alerts
-- Telemetry reliability risks
-- Signal degradation warnings
-
-### 7. Dynamic Route Optimization
-Automatically recommends:
-- Alternate routes
-- Bypass corridors
-- Delay mitigation strategies
-
-### 8. Threat Simulation Center
-Allows operators to simulate:
-- Severe weather events
-- Port congestion
-- Environmental disruptions
-- Reliability degradation scenarios
-
-## 🧠 Reliability Scoring Model
-
-The Route Reliability Index (RRI) is calculated using weighted operational factors:
-
-\[R = (W_w \times S_w) + (W_p \times S_p) + (W_c \times S_c) + (W_h \times S_h)\]
-
-Where:
-
-| Variable | Description | Weight |
-|---|---|---|
-| \(W_w\) | Weather Risk Weight | 0.40 |
-| \(W_p\) | Port Alignment Weight | 0.30 |
-| \(W_c\) | Congestion Weight | 0.15 |
-| \(W_h\) | Historical Delay Weight | 0.15 |
-
-Each score ranges from:
-- `0` = Critical Risk
-- `100` = Optimal Conditions
-
-If physical clearance checks fail, the route is immediately marked:
-- **BLOCKED**
-- **Reliability Score = 0**
-
-## 👥 Target Users
-
-### Freight Operations Coordinators
-Responsble for creating and validating railway freight routes.
-
-### Logistics Managers
-Coordinate rail operations with maritime shipping schedules.
-
-### Rail Risk Analysts
-Monitor network-wide reliability, environmental threats, and operational KPIs.
-
-## 🖥️ System Architecture
-
-### Frontend
-- React
-- TypeScript
-- Tailwind CSS
-- Leaflet.js
-- Responsive Dashboard UI
-- Core UI Components
-- Interactive Railway Map
-- Risk Visualization Layer
-- Reliability Dashboard
-- Threat Simulation Panel
-- Route Analytics View
-
-### Backend
-- FastAPI
-- Python
-- REST APIs
-- Geospatial Processing Engine
-- **Responsibilities**: Route calculation, reliability scoring, data aggregation, risk analysis, environmental processing.
-
-### Database
-- PostgreSQL
-- **Stores**: Railway nodes, route data, bridge clearances, tunnel dimensions, historical delays, environmental snapshots.
-
-## 🌎 Data Sources
-
-Potential integrations include:
-- **Weather**: OpenWeather API, WeatherAPI, NOAA
-- **Space Weather**: NOAA Space Weather Prediction Center
-- **Mapping**: OpenStreetMap, Leaflet Layers
-- **Maritime Logistics**: Port scheduling APIs, AIS vessel tracking systems
-
-## 🔄 User Workflow
-
-1. Input Cargo Details
-2. Select Origin & Destination
-3. Run Clearance Validation
-4. Analyze Environmental Risks
-5. Calculate Reliability Score
-6. Visualize Route on Map
-7. Simulate Threat Scenarios
-8. Dispatch Approved Route
-
-## 📊 Success Metrics
-
-The platform aims to improve:
-- Route planning speed
-- ETA accuracy
-- Port synchronization efficiency
-- Delay prediction accuracy
-- Operational reliability
-- Freight throughput
-
-## 🚫 Out of Scope (V1)
-
-The following features are intentionally excluded:
-- Track maintenance forecasting
-- Rail wear prediction
-- Locomotive health monitoring
-- Passenger booking systems
-- Crew scheduling
-- Ticketing integrations
-
-This allows the MVP to focus entirely on freight intelligence and route optimization.
-
-## 🚀 MVP Roadmap
-
-### Phase 1
-- Cargo Route Planner
-- Weather Intelligence
-- Reliability Scoring
-- Interactive Railway Map
-
-### Phase 2
-- Dynamic Re-routing
-- Port Synchronization
-- Threat Simulation Center
-
-### Phase 3
-- AI Delay Prediction
-- Collaborative Workspaces
-- Advanced Analytics
-
-## 🛠️ Local Development
-
-```bash
-# Clone repository
-git clone https://github.com/Omiseni5834e/Clearpath-nexus.git
-
-# Navigate to project
-cd Clearpath-nexus
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
+```powershell
+docker compose up --build
 ```
 
-## 📂 Project Structure
+Apply database migrations before starting a newly upgraded environment:
 
-```text
-ClearPath-Nexus/
-│
-├── frontend/
-│   ├── components/
-│   ├── pages/
-│   ├── services/
-│   ├── hooks/
-│   └── assets/
-│
-├── backend/
-│   ├── api/
-│   ├── services/
-│   ├── models/
-│   ├── routes/
-│   └── scoring/
-│
-├── database/
-│   ├── schema/
-│   └── migrations/
-│
-├── docs/
-│
-└── README.md
+```powershell
+cd backend
+alembic upgrade head
 ```
 
-## 🤝 Contributing
+Android reads `backendBaseUrl`, `supabaseUrl`, and `supabaseAnonKey` Gradle properties. Repository defaults are non-secret placeholders; configure values locally in `~/.gradle/gradle.properties` or secured CI.
 
-Contributions are welcome.
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m "Add amazing feature"`)
-4. Push to your branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Verification
 
-## 📜 License
+```powershell
+cd backend
+python -m pytest -q
+ruff check .
 
-MIT License
+cd ..\frontend
+pnpm install
+pnpm run build
+pnpm run lint
+```
 
----
+Android requires a locally installed JDK and Android SDK: `gradlew testDebugUnitTest assembleDebug`.
 
-### Vision
+The live ingestor runs separately from API requests:
 
-> "Transform railway freight planning from reactive logistics management into proactive AI-driven operational intelligence."
+```powershell
+cd backend
+python -m app.workers.live_ingestor
+```
 
-**"Every journey begins with a plan. For railway freight, that plan can be complex. ClearPath Nexus simplifies the process by helping teams find reliable routes, understand potential risks, and keep cargo moving smoothly from start to finish." 🚆📡🌍**
+The ixigo adapter has no default consumer endpoint. Only users with separately authorized partner access should configure `IXIGO_TRAIN_STATUS_URL`, `IXIGO_API_KEY`, and `IXIGO_SYNC_ENABLED=true`, then start its isolated profile:
+
+```powershell
+docker compose --profile ixigo up --build train-synchronizer
+```
+
+Without those credentials, train sync truthfully returns `AUTH_REQUIRED`; route planning and scheduling continue normally.
+
+Build and evaluate the first delay-model candidate only after the schema is migrated:
+
+```powershell
+python scripts/build_ml_dataset.py --include-simulated --register
+python scripts/train_delay_model.py --register
+python scripts/evaluate_delay_model.py
+```
+
+`--include-simulated` is strictly a pipeline-validation path. The generated rows are labelled `SIMULATED`, remain ineligible for production evaluation, and cannot pass the promotion gate.
+
+## Data honesty
+
+Source states distinguish `LIVE_PROVIDER`, `PUBLIC_OPEN_DATA`, `CACHED_PROVIDER`, `OPERATOR_INPUT`, `SEEDED_BASELINE`, `DERIVED`, `SIMULATED`, `OFFLINE_COMPUTED`, `IMPORTED_DOCUMENT`, and `UNAVAILABLE`. Provider-specific raw states remain stored separately.
+
+The current segment engineering constraints, static congestion values, and historical-delay factors are seeded demonstration baselines. OpenStreetMap geometry does not certify bridge/OHE clearances, structure gauge, or axle-load capacity. ComplianceGuard is decision support, not legal advice, and it never invents penalty amounts.
+
+## Project layout
+
+- `backend/` — FastAPI, SQLAlchemy/PostGIS, Alembic, deterministic services, and pytest suite.
+- `frontend/` — React 19 operations console.
+- `android/` — Kotlin/Jetpack Compose client.
+- `docs/` — product truth, evidence model, compliance scope, and source attribution.
+
+## License
+
+Project code is provided under [MIT](LICENSE). External datasets and providers retain their own terms and attribution requirements.

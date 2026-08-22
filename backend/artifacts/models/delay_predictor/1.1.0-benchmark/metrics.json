@@ -1,0 +1,86 @@
+{
+  "winner": "GradientBoostingRegressor",
+  "validation": {
+    "HistGradientBoostingRegressor": {
+      "mae_minutes": 7.332,
+      "rmse_minutes": 9.2642,
+      "median_ae_minutes": 5.6213,
+      "r2": 0.90185
+    },
+    "RandomForestRegressor": {
+      "mae_minutes": 9.9241,
+      "rmse_minutes": 13.0362,
+      "median_ae_minutes": 7.4569,
+      "r2": 0.80565
+    },
+    "ExtraTreesRegressor": {
+      "mae_minutes": 9.1574,
+      "rmse_minutes": 11.5501,
+      "median_ae_minutes": 7.9948,
+      "r2": 0.84743
+    },
+    "GradientBoostingRegressor": {
+      "mae_minutes": 7.1403,
+      "rmse_minutes": 9.4889,
+      "median_ae_minutes": 5.1271,
+      "r2": 0.89703
+    }
+  },
+  "test": {
+    "mae_minutes": 7.4394,
+    "rmse_minutes": 10.0794,
+    "median_ae_minutes": 5.5613,
+    "r2": 0.87909
+  },
+  "deterministic_baseline_test": {
+    "mae_minutes": 4.3341,
+    "rmse_minutes": 5.433,
+    "median_ae_minutes": 4.11,
+    "r2": 0.96487
+  },
+  "mae_improvement_pct": -71.65,
+  "selection_metric": "validation_mae_minutes",
+  "candidates_evaluated": 4,
+  "test_evaluations": 1,
+  "winner_refit_on_train_and_validation": true,
+  "candidate_parameters": {
+    "HistGradientBoostingRegressor": {
+      "max_iter": 180,
+      "learning_rate": 0.06,
+      "max_leaf_nodes": 24,
+      "random_state": 520
+    },
+    "RandomForestRegressor": {
+      "n_estimators": 160,
+      "max_depth": 12,
+      "min_samples_leaf": 3,
+      "random_state": 520,
+      "n_jobs": 1
+    },
+    "ExtraTreesRegressor": {
+      "n_estimators": 160,
+      "max_depth": 14,
+      "min_samples_leaf": 2,
+      "max_features": 1.0,
+      "random_state": 520,
+      "n_jobs": 1
+    },
+    "GradientBoostingRegressor": {
+      "n_estimators": 180,
+      "learning_rate": 0.05,
+      "max_depth": 3,
+      "min_samples_leaf": 3,
+      "loss": "huber",
+      "random_state": 520
+    }
+  },
+  "split": {
+    "train_rows": 420,
+    "validation_rows": 90,
+    "test_rows": 90,
+    "winner_fit_rows": 510,
+    "train_end": "2026-01-17T00:05:00+00:00",
+    "validation_end": "2026-01-20T10:35:00+00:00",
+    "test_end": "2026-01-23T21:05:00+00:00"
+  }
+}

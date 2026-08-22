@@ -265,15 +265,43 @@ object DemoRouteEngine {
         return (baseDelay + congestionPct * 0.5 + weatherRisk * 0.8).toInt()
     }
 
+    // Weights must match backend/app/services/reliability.py exactly - see
+    // app/tests/test_scoring_parity.py on the backend for the shared vectors.
+    private const val WEIGHT_WEATHER = 0.40
+    private const val WEIGHT_PORT = 0.30
+    private const val WEIGHT_CONGESTION = 0.15
+    private const val WEIGHT_HISTORICAL = 0.15
+
+    /**
+     * Mirrors reliability.calculate_route_reliability. When port data is
+     * unavailable the port term is dropped and the remaining weights are
+     * renormalised, rather than treating the missing port score as a zero -
+     * that renormalisation was the fix for a 22-point scoring bug on the
+     * backend (see backend/CHANGES.md, section 2), and this offline engine
+     * previously always assumed portAvailable = true, so it never carried
+     * the fix. Reachable once this engine ever models a missing port score.
+     */
     private fun calculateReliability(
         weather: Double,
         port: Double,
         congestion: Double,
         historical: Double,
         clearanceFailed: Boolean,
+        portAvailable: Boolean = true,
     ): Int {
         if (clearanceFailed) return 0
-        val composite = 0.40 * weather + 0.30 * port + 0.15 * congestion + 0.15 * historical
+
+        val factors = mutableListOf(
+            WEIGHT_WEATHER to weather,
+            WEIGHT_CONGESTION to congestion,
+            WEIGHT_HISTORICAL to historical,
+        )
+        if (portAvailable) factors.add(WEIGHT_PORT to port)
+
+        val totalWeight = factors.sumOf { it.first }
+        if (totalWeight <= 0.0) return 0
+
+        val composite = factors.sumOf { (weight, score) -> weight * score } / totalWeight
         return ceil(composite).toInt()
     }
 

@@ -1,8 +1,23 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// Release signing is loaded from key.properties if present. Never commit a
+// keystore or signing passwords to this repository.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasSigningConfig = keystorePropertiesFile.exists()
+val allowUnsignedRelease = providers.gradleProperty("allowUnsignedRelease")
+    .map(String::toBoolean)
+    .orElse(false)
+    .get()
+if (hasSigningConfig) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
 }
 
 android {
@@ -13,12 +28,36 @@ android {
         applicationId = "com.clearpath.nexus"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "6.0.0"
 
-        // Build for real phones only (ARM). Skips x86 emulator binaries.
+        buildConfigField(
+            "String",
+            "BACKEND_BASE_URL",
+            "\"${providers.gradleProperty("backendBaseUrl").orElse("http://10.0.2.2:8000/api/v1").get()}\"",
+        )
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${providers.gradleProperty("backendBaseUrl").orElse("http://10.0.2.2:8000/api/v1").get()}\"",
+        )
+        buildConfigField("String", "SUPABASE_URL", "\"${providers.gradleProperty("supabaseUrl").orElse("https://your-project.supabase.co").get()}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${providers.gradleProperty("supabaseAnonKey").orElse("your-public-anon-key").get()}\"")
+
+        // Build for physical devices (ARM) and emulators (x86 / x86_64).
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+    }
+
+    if (hasSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -26,12 +65,28 @@ android {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
+            manifestPlaceholders["usesCleartextTraffic"] = true
             // Installs straight to a USB-connected phone via Android Studio Run.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-device"
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            manifestPlaceholders["usesCleartextTraffic"] = false
+            if (hasSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            buildConfigField(
+                "String",
+                "BACKEND_BASE_URL",
+                "\"${providers.gradleProperty("releaseBackendBaseUrl").orElse("https://api.example.invalid/api/v1").get()}\"",
+            )
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"${providers.gradleProperty("releaseBackendBaseUrl").orElse("https://api.example.invalid/api/v1").get()}\"",
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -57,12 +112,35 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+// Keep ordinary Gradle configuration, release compilation, and debug
+// verification usable without a release keystore. Any task graph that would
+// emit a release APK or bundle still requires legitimate signing or an
+// explicit CI-only opt-in to compile an unsigned artifact. The patterns also
+// cover future product-flavor tasks such as packageDemoRelease.
+val releaseArtifactTaskPatterns = listOf(
+    Regex("^(assemble|bundle|package).*Release$"),
+    Regex("^(sign|finalize|package).*ReleaseBundle$"),
+)
+
+gradle.taskGraph.whenReady {
+    val releaseArtifactTasks = allTasks.filter { task ->
+        task.project == project && releaseArtifactTaskPatterns.any { it.matches(task.name) }
+    }
+    if (!hasSigningConfig && !allowUnsignedRelease && releaseArtifactTasks.isNotEmpty()) {
+        throw GradleException(
+            "Release signing is not configured. Provide android/key.properties " +
+                "or pass -PallowUnsignedRelease=true for CI-only verification.",
+        )
     }
 }
 
@@ -82,13 +160,16 @@ dependencies {
 
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
-    // Supabase
+    // Supabase is the single auth provider across Android and web.
     implementation(platform("io.github.jan-tennert.supabase:bom:3.0.3"))
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
-    
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+
     // Ktor Android Engine
     implementation("io.ktor:ktor-client-android:3.0.1")
+    implementation("io.ktor:ktor-client-content-negotiation:3.0.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
@@ -99,5 +180,3 @@ configurations.all {
         force("androidx.browser:browser:1.8.0")
     }
 }
-
-

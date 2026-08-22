@@ -1,47 +1,36 @@
-# ClearPath Nexus — Android App
+# ClearPath Nexus Android client
 
-Standalone Android client for **physical devices**. No Docker, no backend, no emulator required.
+The Kotlin/Jetpack Compose client uses Supabase for authentication and sends the resulting bearer token to the FastAPI `/api/v1` operational backend. Backend authorization remains authoritative.
 
 ## Requirements
 
-- Android Studio Ladybug (2024.2.1) or newer
-- Android phone with **USB debugging** enabled (Settings → Developer options)
-- USB cable
+- JDK 17
+- Android Studio and Android SDK 35
+- A reachable FastAPI deployment
+- Your public Supabase URL and anon key
 
-Internet on the phone is only needed for OpenStreetMap tiles on the Map tab.
+Do not place a Supabase service-role key in this app.
 
-## Run on your phone
+## Configuration
 
-1. On your phone: **Settings → About phone** → tap Build number 7× to unlock Developer options  
-2. **Settings → Developer options** → enable **USB debugging**  
-3. Connect the phone via USB; accept the **Allow USB debugging** prompt  
-4. Open Android Studio, then choose **File > Open** and select the `android` folder.
-5. Wait for Gradle sync  
-6. In the device dropdown (top toolbar), select **your phone** — not an emulator  
-7. Click **Run** (green play button)
+Pass local Gradle properties or set them in the user-level Gradle properties file:
 
-The debug build installs as `ClearPath Nexus` with package `com.clearpath.nexus.debug`.
+```properties
+backendBaseUrl=http://10.0.2.2:8000/api/v1
+supabaseUrl=https://your-project.supabase.co
+supabaseAnonKey=your-public-anon-key
+```
 
-## Gradle notes (physical device)
+The committed defaults are placeholders. A physical device needs a backend address reachable from the device. Production releases require HTTPS, `releaseBackendBaseUrl`, and an external signing configuration.
 
-| Setting | Purpose |
-|---------|---------|
-| `ndk.abiFilters` | Builds ARM binaries only (`armeabi-v7a`, `arm64-v8a`) — real phones, not x86 emulators |
-| `splits.abi.isEnable = false` | Single APK for any connected phone |
-| `applicationIdSuffix = ".debug"` | Debug installs alongside a future release build |
+## Verification
 
-## Wireless debugging (optional)
+```powershell
+.\gradlew.bat testDebugUnitTest assembleDebug
+```
 
-Android 11+: **Developer options → Wireless debugging** → pair from Android Studio (**Pair devices using Wi‑Fi**). Then Run as usual with the wireless device selected.
+## Data-source behavior
 
-## App tabs
+Normal route decisions come from the FastAPI backend. If the offline engine is used, the repository sets `computedOffline` and the UI must display `OFFLINE_COMPUTED`; it must not be represented as live backend intelligence.
 
-| Tab | What it does |
-|-----|----------------|
-| **Configure** | Cargo dimensions, stations, evaluate corridor |
-| **Map** | Route map (needs phone internet/Wi‑Fi) |
-| **Telemetry** | Scores, alerts, threat simulator |
-
-## Demo corridor
-
-NGP → BSL → MMR → KYN → JNPT (or via PUNE)
+Android v6 parses the compact SourceLine traceability summary. Full evidence inspection and ComplianceGuard remain web-first features in this release.

@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -187,6 +189,20 @@ fun CommandDashboardScreen(
                     colors = navColors(),
                 )
                 NavigationBarItem(
+                    selected = state.selectedTab == DashboardTab.SCHEDULE,
+                    onClick = { viewModel.onTabSelected(DashboardTab.SCHEDULE) },
+                    icon = { Icon(Icons.Default.Schedule, contentDescription = "Schedule", modifier = Modifier.size(20.dp)) },
+                    label = { Text("Schedule", fontSize = 8.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) },
+                    colors = navColors(),
+                )
+                NavigationBarItem(
+                    selected = state.selectedTab == DashboardTab.HISTORY,
+                    onClick = { viewModel.onTabSelected(DashboardTab.HISTORY) },
+                    icon = { Icon(Icons.Default.History, contentDescription = "History", modifier = Modifier.size(20.dp)) },
+                    label = { Text("Log", fontSize = 8.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) },
+                    colors = navColors(),
+                )
+                NavigationBarItem(
                     selected = state.selectedTab == DashboardTab.LOADS,
                     onClick = { viewModel.onTabSelected(DashboardTab.LOADS) },
                     icon = { Icon(Icons.Default.Inventory2, contentDescription = "Loads", modifier = Modifier.size(20.dp)) },
@@ -234,6 +250,9 @@ fun CommandDashboardScreen(
                     sourceCode = state.sourceCode,
                     destCode = state.destCode,
                     trainHours = state.trainHours,
+                    useBerthWindow = state.useBerthWindow,
+                    berthStartHours = state.berthStartHours,
+                    berthEndHours = state.berthEndHours,
                     stations = state.stations,
                     stops = state.stops,
                     isLoading = state.isLoading,
@@ -244,6 +263,9 @@ fun CommandDashboardScreen(
                     onSourceChange = viewModel::onSourceChange,
                     onDestChange = viewModel::onDestChange,
                     onTrainHoursChange = viewModel::onTrainHoursChange,
+                    onUseBerthWindowChange = viewModel::onUseBerthWindowChange,
+                    onBerthStartHoursChange = viewModel::onBerthStartHoursChange,
+                    onBerthEndHoursChange = viewModel::onBerthEndHoursChange,
                     onStopsChange = viewModel::onStopsChange,
                     onAddStopClick = { showAddDestinationDialog = true },
                     onEvaluate = viewModel::evaluateRoute,
@@ -281,6 +303,10 @@ fun CommandDashboardScreen(
                     onSimulate = viewModel::simulateThreat,
                     modifier = Modifier.fillMaxSize(),
                 )
+
+                DashboardTab.SCHEDULE -> ScheduleScreen(modifier = Modifier.fillMaxSize())
+
+                DashboardTab.HISTORY -> DispatchHistoryScreen(modifier = Modifier.fillMaxSize())
 
                 DashboardTab.LOADS -> LoadProfilesPanel(
                     loadProfiles = state.loadProfiles,

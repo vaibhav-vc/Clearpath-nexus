@@ -218,7 +218,7 @@ export async function fetchRailwayTrack(
     trackCache.set(key, result ?? [])
     return result
   } catch (err) {
-    console.warn('[railwayGeometry] Overpass fetch failed, using fallback:', err)
+    console.warn('[railwayGeometry] Overpass geometry unavailable:', err)
     trackCache.set(key, [])
     return undefined
   }

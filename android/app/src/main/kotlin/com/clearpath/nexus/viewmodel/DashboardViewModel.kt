@@ -2,6 +2,7 @@ package com.clearpath.nexus.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.clearpath.nexus.data.api.LoadingWindowDto
 import com.clearpath.nexus.data.api.SupabaseClient
 import com.clearpath.nexus.data.api.WeatherService
 import com.clearpath.nexus.data.model.EnvironmentalZone
@@ -18,6 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.TimeZone
 
 data class DashboardUiState(
     val stations: List<Station> = emptyList(),
@@ -27,6 +32,9 @@ data class DashboardUiState(
     val sourceCode: String = "NGP",
     val destCode: String = "JNPT",
     val trainHours: String = "24",
+    val useBerthWindow: Boolean = false,
+    val berthStartHours: String = "12",
+    val berthEndHours: String = "48",
     val isLoading: Boolean = false,
     val error: String? = null,
     val result: RouteEvaluateResponse? = null,
@@ -64,6 +72,8 @@ enum class DashboardTab {
     ROUTE_SELECTION,
     MAP,
     TELEMETRY,
+    SCHEDULE,
+    HISTORY,
     LOADS,
     USER,
 }
@@ -85,6 +95,9 @@ class DashboardViewModel(
     fun onSourceChange(value: String) = _uiState.update { it.copy(sourceCode = value) }
     fun onDestChange(value: String) = _uiState.update { it.copy(destCode = value) }
     fun onTrainHoursChange(value: String) = _uiState.update { it.copy(trainHours = value) }
+    fun onUseBerthWindowChange(value: Boolean) = _uiState.update { it.copy(useBerthWindow = value) }
+    fun onBerthStartHoursChange(value: String) = _uiState.update { it.copy(berthStartHours = value) }
+    fun onBerthEndHoursChange(value: String) = _uiState.update { it.copy(berthEndHours = value) }
     fun onStormChange(value: Float) = _uiState.update { it.copy(stormSeverity = value) }
     fun onSolarChange(value: Float) = _uiState.update { it.copy(solarKp = value) }
     fun onPortChange(value: Float) = _uiState.update { it.copy(portCongestion = value) }
@@ -93,7 +106,7 @@ class DashboardViewModel(
 
     private fun loadStations() {
         viewModelScope.launch {
-            val stations = repository.fetchStations()
+            val stations = repository.fetchStations().data
             _uiState.update { it.copy(stations = stations) }
         }
     }
@@ -104,9 +117,12 @@ class DashboardViewModel(
         val width = state.width.toDoubleOrNull()
         val weight = state.weight.toDoubleOrNull()
         val trainHours = state.trainHours.toDoubleOrNull()
+        val berthStartHours = state.berthStartHours.toDoubleOrNull()
+        val berthEndHours = state.berthEndHours.toDoubleOrNull()
 
         if (height == null || width == null || weight == null || trainHours == null ||
-            height <= 0 || width <= 0 || weight <= 0 || trainHours <= 0
+            height <= 0 || width <= 0 || weight <= 0 || trainHours <= 0 ||
+            (state.useBerthWindow && (berthStartHours == null || berthEndHours == null || berthEndHours <= berthStartHours))
         ) {
             _uiState.update {
                 it.copy(error = "Invalid entries detected. Cargo height and weight must be positive numeric values.")
@@ -117,6 +133,13 @@ class DashboardViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
+                val loadingWindow = if (state.useBerthWindow && berthStartHours != null && berthEndHours != null) {
+                    LoadingWindowDto(
+                        startTime = isoHoursFromNow(berthStartHours),
+                        endTime = isoHoursFromNow(berthEndHours),
+                    )
+                } else null
+
                 val result = repository.evaluateRoute(
                     height = height,
                     width = width,
@@ -125,7 +148,8 @@ class DashboardViewModel(
                     destCode = state.destCode,
                     trainArrivalHours = trainHours,
                     stops = state.stops,
-                )
+                    loadingWindow = loadingWindow,
+                ).data
 
                 // Fetch weather condition for coordinates midpoint and recalculate score breakdown
                 val allCoords = result.segments.flatMap { it.coordinates }
@@ -186,7 +210,7 @@ class DashboardViewModel(
                     stormSeverity = state.stormSeverity.toDouble(),
                     solarKpIndex = state.solarKp.toInt(),
                     portCongestion = state.portCongestion.toDouble(),
-                )
+                ).data
                 _uiState.update {
                     it.copy(
                         simLoading = false,
@@ -429,5 +453,13 @@ class DashboardViewModel(
             _uiState.update { it.copy(selectedProfileId = null) }
         }
     }
+    private fun isoHoursFromNow(hours: Double): String {
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        calendar.timeInMillis += (hours * 60.0 * 60.0 * 1000.0).toLong()
+        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        format.timeZone = TimeZone.getTimeZone("UTC")
+        return format.format(calendar.time)
+    }
+
 }
 

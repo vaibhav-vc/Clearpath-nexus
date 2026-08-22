@@ -1,7 +1,39 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.services.congestion import CongestionSource
+from app.services.port_sync import LoadingWindow, PortDataSource
+from app.schemas.provenance import ProvenanceSummary
+
+
+class OperatorLoadingWindow(BaseModel):
+    """Vessel loading window entered by the operator from the manifest.
+
+    Supplying this is the reliable path: there is no free public JNPT berth
+    feed, so without it port alignment is excluded from the score.
+    """
+
+    start_time: datetime
+    end_time: datetime
+
+    @model_validator(mode="after")
+    def _check_order(self) -> "OperatorLoadingWindow":
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be after start_time")
+        return self
+
+
+class _HasPortWindow(BaseModel):
+    """Mixin: shared operator-window plumbing for route requests."""
+
+    loading_window: OperatorLoadingWindow | None = None
+
+    def operator_loading_window(self) -> LoadingWindow | None:
+        if self.loading_window is None:
+            return None
+        return LoadingWindow(start=self.loading_window.start_time, end=self.loading_window.end_time)
 
 
 class CargoDimensions(BaseModel):
@@ -10,13 +42,15 @@ class CargoDimensions(BaseModel):
     weight: float = Field(..., gt=0, description="Cargo weight in tons")
 
 
-class RouteEvaluateRequest(BaseModel):
+class RouteEvaluateRequest(_HasPortWindow):
     cargo: CargoDimensions
     source_code: str = Field(..., min_length=2, max_length=10)
     dest_code: str = Field(..., min_length=2, max_length=10)
     port_id: str = "JNPT_MUMBAI"
     vessel_id: str = "MAERSK_X26"
-    train_arrival_hours: float = Field(24.0, gt=0, description="Expected train arrival offset in hours")
+    train_arrival_hours: float = Field(
+        24.0, gt=0, description="Expected train arrival offset in hours"
+    )
 
 
 class TrainLocationInput(BaseModel):
@@ -26,7 +60,7 @@ class TrainLocationInput(BaseModel):
     lon: float | None = None
 
 
-class RouteSuggestRequest(BaseModel):
+class RouteSuggestRequest(_HasPortWindow):
     cargo: CargoDimensions
     destination_code: str = Field(..., min_length=2, max_length=10)
     location: TrainLocationInput
@@ -72,6 +106,16 @@ class ScoreBreakdown(BaseModel):
     port: float
     congestion: float
     historical: float
+    # Where the port figure came from, and whether it counted at all.
+    port_data_source: PortDataSource = PortDataSource.UNAVAILABLE
+    port_counted: bool = False
+    applied_weights: dict[str, float] = {}
+    # How the congestion figure was reached: seeded baseline, or baseline
+    # blended with live rail/AIS telemetry.
+    congestion_source: CongestionSource = CongestionSource.STATIC_ONLY
+    congestion_static: float | None = None
+    congestion_live_rail: float | None = None
+    port_congestion_pct: float | None = None
 
 
 class SegmentPathPoint(BaseModel):
@@ -96,6 +140,7 @@ class RouteEvaluateResponse(BaseModel):
     score_breakdown: ScoreBreakdown | None = None
     segments: list[SegmentPathResponse] = []
     environmental_alerts: list[str] = []
+    provenance_summary: ProvenanceSummary | None = None
 
 
 class RouteSuggestResponse(RouteEvaluateResponse):
@@ -128,3 +173,26 @@ class ThreatSimulationResponse(BaseModel):
     simulated_score: int
     degradation_pct: float
     alerts: list[str]
+
+
+class RouteHistoryResponse(BaseModel):
+    id: UUID
+    source_station_code: str
+    dest_station_code: str
+    cargo_height_requested: float
+    cargo_width_requested: float
+    cargo_weight_requested: float
+    status: str
+    dispatch_status: str
+    reliability_score: int
+    estimated_hours: float | None = None
+    dispatched_at: datetime | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RouteDispatchResponse(BaseModel):
+    route_id: UUID
+    dispatch_status: str
+    dispatched_at: datetime

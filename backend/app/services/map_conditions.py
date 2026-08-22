@@ -160,7 +160,13 @@ def map_weather_to_conditions(
 
     if temp <= 2 and 51 <= code <= 67:
         conditions.append(
-            {"id": f"{point_id}-icing", "type": "icing", "category": "weather", "lat": lat, "lon": lon}
+            {
+                "id": f"{point_id}-icing",
+                "type": "icing",
+                "category": "weather",
+                "lat": lat,
+                "lon": lon,
+            }
         )
 
     if code >= 95:
@@ -187,7 +193,13 @@ def map_weather_to_conditions(
 
     if 0 < visibility < 3000 and wind > 8 and humidity < 40:
         conditions.append(
-            {"id": f"{point_id}-dust", "type": "dust", "category": "weather", "lat": lat, "lon": lon}
+            {
+                "id": f"{point_id}-dust",
+                "type": "dust",
+                "category": "weather",
+                "lat": lat,
+                "lon": lon,
+            }
         )
 
     return conditions
@@ -230,7 +242,7 @@ async def fetch_map_conditions(
             continue
 
     kp_data = await space_weather_service.fetch_kp_index()
-    kp = int(kp_data.get("kp_index", 2))
+    kp = int(kp_data.get("kp_index") or 0)
     if kp >= 5 and points:
         p = points[0]
         all_conditions.append(
@@ -250,19 +262,6 @@ async def fetch_map_conditions(
             {
                 "id": "op-port-jnpt",
                 "type": "port_active",
-                "category": "operational",
-                "lat": float(p["lat"]),
-                "lon": float(p["lon"]),
-            }
-        )
-
-    weather_count = sum(1 for c in all_conditions if c.get("category") != "operational")
-    if weather_count == 0 and points:
-        p = points[0]
-        all_conditions.append(
-            {
-                "id": "all-clear",
-                "type": "all_clear",
                 "category": "operational",
                 "lat": float(p["lat"]),
                 "lon": float(p["lon"]),

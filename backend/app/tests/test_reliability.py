@@ -1,5 +1,3 @@
-import pytest
-
 from app.services.reliability import apply_threat_simulation, calculate_route_reliability
 
 
@@ -15,6 +13,8 @@ def test_clearance_override():
 
 
 def test_threat_simulation():
-    simulated, alerts = apply_threat_simulation(85, storm_severity=50, solar_kp_index=8, port_congestion=30)
+    simulated, alerts = apply_threat_simulation(
+        85, storm_severity=50, solar_kp_index=8, port_congestion=30
+    )
     assert simulated < 85
     assert len(alerts) >= 2

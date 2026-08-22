@@ -44,7 +44,7 @@ class RouteSelectionViewModel(
             try {
                 val routes = repository.fetchAlternateRoutes(
                     height, width, weight, sourceCode, destCode, trainArrivalHours, stops,
-                )
+                ).data
 
                 // Auto-select the first route
                 val firstId = routes.firstOrNull()?.id

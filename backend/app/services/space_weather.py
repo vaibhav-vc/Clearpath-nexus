@@ -9,16 +9,37 @@ import httpx
 import redis.asyncio as aioredis
 
 from app.core.config import settings
+from app.core.observability import provider_status
 
 logger = logging.getLogger(__name__)
 
-FALLBACK_WEATHER = {
-    "weather": [{"id": 800, "main": "Clear", "description": "clear sky"}],
-    "main": {"temp": 28.0, "visibility": 10000},
-    "wind": {"speed": 5.0},
+UNAVAILABLE_WEATHER = {"status": "unavailable", "source": "provider-unavailable"}
+UNAVAILABLE_KP = {
+    "status": "unavailable",
+    "source": "provider-unavailable",
+    "kp_index": None,
+    "alert_level": "UNKNOWN",
+    "issue_datetime": None,
 }
 
-FALLBACK_KP = {"kp_index": 2, "alert_level": "NONE", "issue_datetime": "2026-06-08 00:00:00"}
+
+def _with_provenance(
+    payload: dict[str, Any],
+    *,
+    provider: str,
+    raw_state: str,
+    observed_at: str | None = None,
+    fetched_at: str | None = None,
+) -> dict[str, Any]:
+    """Attach decision-safe provider metadata; never include request credentials."""
+    result = dict(payload)
+    result["_provenance"] = {
+        "provider": provider,
+        "raw_state": raw_state,
+        "observed_at": observed_at,
+        "fetched_at": fetched_at or datetime.now(timezone.utc).isoformat(),
+    }
+    return result
 
 
 class SpaceWeatherService:
@@ -50,14 +71,24 @@ class SpaceWeatherService:
         except Exception:
             pass
 
-    async def fetch_route_environmental_risks(
-        self, lat: float, lon: float
-    ) -> dict[str, Any]:
-        """Fetch OpenWeatherMap data for a coordinate."""
+    async def close(self) -> None:
+        if self._redis is not None:
+            await self._redis.aclose()
+            self._redis = None
+
+    async def fetch_route_environmental_risks(self, lat: float, lon: float) -> dict[str, Any]:
+        """Fetch configured weather data, falling back to Open-Meteo."""
         cache_key = f"weather:{lat:.2f}:{lon:.2f}"
         cached = await self._cache_get(cache_key)
         if cached:
-            return cached
+            cached_meta = cached.get("_provenance", {})
+            return _with_provenance(
+                {k: v for k, v in cached.items() if k != "_provenance"},
+                provider=cached_meta.get("provider", "open_meteo"),
+                raw_state="CACHED",
+                observed_at=cached_meta.get("observed_at"),
+                fetched_at=cached_meta.get("fetched_at"),
+            )
 
         if not settings.OPENWEATHER_API_KEY:
             try:
@@ -66,6 +97,15 @@ class SpaceWeatherService:
                     resp = await client.get(url)
                     resp.raise_for_status()
                     current = resp.json().get("current", {})
+                    required = {
+                        "temperature_2m",
+                        "relative_humidity_2m",
+                        "weather_code",
+                        "wind_speed_10m",
+                        "visibility",
+                    }
+                    if not required.issubset(current):
+                        raise ValueError("Open-Meteo response is missing current weather fields")
                     owm_data = {
                         "wind": {
                             "speed": round(current.get("wind_speed_10m", 0) / 3.6, 2)  # km/h to m/s
@@ -73,21 +113,35 @@ class SpaceWeatherService:
                         "main": {
                             "temp": current.get("temperature_2m", 25.0),
                             "visibility": current.get("visibility", 10000),
-                            "humidity": current.get("relative_humidity_2m", 50)
+                            "humidity": current.get("relative_humidity_2m", 50),
                         },
                         "weather": [
                             {
                                 "id": 500 if int(current.get("weather_code", 0)) >= 51 else 800,
-                                "main": "Precipitation" if int(current.get("weather_code", 0)) >= 51 else "Clear",
-                                "description": "precipitation" if int(current.get("weather_code", 0)) >= 51 else "clear sky"
+                                "main": "Precipitation"
+                                if int(current.get("weather_code", 0)) >= 51
+                                else "Clear",
+                                "description": "precipitation"
+                                if int(current.get("weather_code", 0)) >= 51
+                                else "clear sky",
                             }
-                        ]
+                        ],
                     }
+                    owm_data = _with_provenance(
+                        owm_data,
+                        provider="open_meteo",
+                        raw_state="LIVE",
+                        observed_at=current.get("time"),
+                    )
                     await self._cache_set(cache_key, owm_data)
+                    provider_status.record_success("open_meteo")
                     return owm_data
             except Exception as exc:
-                logger.warning("Open-Meteo fallback risks fetch failed: %s", exc)
-                return FALLBACK_WEATHER
+                provider_status.record_failure("open_meteo")
+                logger.warning("Open-Meteo weather fetch failed: %s", exc)
+                return _with_provenance(
+                    UNAVAILABLE_WEATHER, provider="open_meteo", raw_state="UNAVAILABLE"
+                )
 
         url = "https://api.openweathermap.org/data/2.5/weather"
         params = {"lat": lat, "lon": lon, "appid": settings.OPENWEATHER_API_KEY, "units": "metric"}
@@ -96,45 +150,157 @@ class SpaceWeatherService:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url, params=params)
                 resp.raise_for_status()
-                data = resp.json()
+                data = _with_provenance(
+                    resp.json(),
+                    provider="openweather",
+                    raw_state="LIVE",
+                    observed_at=(
+                        datetime.fromtimestamp(resp.json()["dt"], tz=timezone.utc).isoformat()
+                        if resp.json().get("dt")
+                        else None
+                    ),
+                )
                 await self._cache_set(cache_key, data)
+                provider_status.record_success("openweather")
                 return data
         except Exception as exc:
+            provider_status.record_failure("openweather")
             logger.warning("Weather fetch failed: %s", exc)
             cached = await self._cache_get(cache_key)
-            return cached or FALLBACK_WEATHER
+        if cached:
+            cached_meta = cached.get("_provenance", {})
+            return _with_provenance(
+                {k: v for k, v in cached.items() if k != "_provenance"},
+                provider=cached_meta.get("provider", "openweather"),
+                raw_state="CACHED",
+                observed_at=cached_meta.get("observed_at"),
+                fetched_at=cached_meta.get("fetched_at"),
+            )
+        return _with_provenance(
+            UNAVAILABLE_WEATHER, provider="openweather", raw_state="UNAVAILABLE"
+        )
+
+    async def fetch_route_weather_point(
+        self, point_id: str, lat: float, lon: float
+    ) -> dict[str, Any]:
+        """Return a fully populated live weather record or an explicit unavailable result."""
+        cache_key = f"route_weather:{lat:.3f}:{lon:.3f}"
+        cached = await self._cache_get(cache_key)
+        if cached:
+            return {"id": point_id, "lat": lat, "lon": lon, "available": True, **cached}
+
+        url = (
+            "https://api.open-meteo.com/v1/forecast"
+            "?current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,"
+            "wind_speed_10m,wind_direction_10m,visibility,uv_index,precipitation"
+            f"&latitude={lat}&longitude={lon}&timezone=auto"
+        )
+        required = {
+            "temperature_2m",
+            "apparent_temperature",
+            "relative_humidity_2m",
+            "weather_code",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "visibility",
+            "uv_index",
+            "precipitation",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                current = response.json().get("current", {})
+            if not required.issubset(current):
+                raise ValueError("Open-Meteo response is missing route-weather fields")
+            payload = {field: current[field] for field in required}
+            await self._cache_set(cache_key, payload, ttl=600)
+            provider_status.record_success("open_meteo")
+            return {"id": point_id, "lat": lat, "lon": lon, "available": True, **payload}
+        except Exception as exc:
+            provider_status.record_failure("open_meteo")
+            logger.warning("Route weather fetch failed for %s: %s", point_id, exc)
+            return {
+                "id": point_id,
+                "lat": lat,
+                "lon": lon,
+                "available": False,
+                "message": "Weather provider unavailable; do not use this record for dispatch decisions.",
+            }
 
     async def fetch_kp_index(self) -> dict[str, Any]:
         """Parse NOAA planetary Kp-index feed."""
         cache_key = "noaa:kp_index"
         cached = await self._cache_get(cache_key)
         if cached:
-            return cached
+            cached_meta = cached.get("_provenance", {})
+            return _with_provenance(
+                {k: v for k, v in cached.items() if k != "_provenance"},
+                provider="noaa_swpc",
+                raw_state="CACHED",
+                observed_at=cached.get("issue_datetime"),
+                fetched_at=cached_meta.get("fetched_at"),
+            )
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(settings.NOAA_SPACE_WEATHER_FEED_URL)
                 resp.raise_for_status()
                 rows = resp.json()
-                if isinstance(rows, list) and len(rows) > 1:
+                if isinstance(rows, list) and rows:
                     latest = rows[-1]
-                    kp_val = int(float(latest[1])) if len(latest) > 1 else 2
+                    if isinstance(latest, dict):
+                        issue_datetime = latest.get("time_tag")
+                        raw_kp = latest.get("Kp")
+                    elif isinstance(latest, list) and len(latest) > 1:
+                        issue_datetime = latest[0]
+                        raw_kp = latest[1]
+                    else:
+                        raise ValueError("NOAA response is missing the latest Kp value")
+                    if issue_datetime is None or raw_kp is None:
+                        raise ValueError("NOAA response is missing timestamp or Kp value")
+                    kp_val = int(float(raw_kp))
                     result = {
                         "kp_index": kp_val,
                         "alert_level": "WARNING" if kp_val >= 7 else "NONE",
-                        "issue_datetime": str(latest[0]) if latest else datetime.now(timezone.utc).isoformat(),
+                        "issue_datetime": str(issue_datetime),
                     }
+                    result = _with_provenance(
+                        result,
+                        provider="noaa_swpc",
+                        raw_state="LIVE",
+                        observed_at=result["issue_datetime"],
+                    )
                     await self._cache_set(cache_key, result)
+                    provider_status.record_success("noaa_space_weather")
                     return result
         except Exception as exc:
+            provider_status.record_failure("noaa_space_weather")
             logger.warning("NOAA fetch failed: %s", exc)
 
         cached = await self._cache_get(cache_key)
-        return cached or FALLBACK_KP
+        if cached:
+            cached_meta = cached.get("_provenance", {})
+            return _with_provenance(
+                {k: v for k, v in cached.items() if k != "_provenance"},
+                provider="noaa_swpc",
+                raw_state="CACHED",
+                observed_at=cached.get("issue_datetime"),
+                fetched_at=cached_meta.get("fetched_at"),
+            )
+        return _with_provenance(UNAVAILABLE_KP, provider="noaa_swpc", raw_state="UNAVAILABLE")
 
-    def weather_to_score(self, weather_data: dict[str, Any], kp_data: dict[str, Any]) -> tuple[float, list[str]]:
+    def weather_to_score(
+        self, weather_data: dict[str, Any], kp_data: dict[str, Any]
+    ) -> tuple[float, list[str]]:
         alerts: list[str] = []
         score = 100.0
+
+        if weather_data.get("status") == "unavailable":
+            score = 50.0
+            alerts.append("Weather provider unavailable — verify conditions before dispatch")
+        if kp_data.get("status") == "unavailable":
+            alerts.append("NOAA space-weather feed unavailable — telemetry risk is unknown")
 
         wind = weather_data.get("wind", {}).get("speed", 0)
         visibility = weather_data.get("main", {}).get("visibility", 10000)
@@ -150,7 +316,7 @@ class SpaceWeatherService:
             score -= 25
             alerts.append("Reduced visibility — dust/fog risk")
 
-        kp = kp_data.get("kp_index", 0)
+        kp = kp_data.get("kp_index") or 0
         if kp >= 7:
             score -= 35
             alerts.append(f"CRITICAL: Geomagnetic Kp-index {kp} — signaling telemetry risk")

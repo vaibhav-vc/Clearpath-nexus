@@ -1,0 +1,184 @@
+{
+  "model_name": "delay_predictor",
+  "version": "1.0.0",
+  "status": "CANDIDATE",
+  "production": false,
+  "algorithm": "HistGradientBoostingRegressor",
+  "artifact_path": "delay_predictor/1.0.0/model.joblib",
+  "artifact_checksum": "b9aa55750d411af6cac5af0cb43fc37a59c0f8919b24401cb9601ee5ed832af5",
+  "metrics_path": "delay_predictor/1.0.0/metrics.json",
+  "feature_schema_version": "delay_features_v1",
+  "feature_list": [
+    "route_distance",
+    "segment_count",
+    "departure_hour",
+    "day_of_week",
+    "month",
+    "current_delay",
+    "journey_progress",
+    "weather_score",
+    "rainfall",
+    "temperature",
+    "wind_speed",
+    "visibility",
+    "corridor_congestion",
+    "station_pressure",
+    "historical_delay",
+    "schedule_conflicts",
+    "port_pressure",
+    "loading_window_delta",
+    "cargo_weight"
+  ],
+  "feature_bounds": {
+    "route_distance": [
+      53.02632925730488,
+      851.9066051709334
+    ],
+    "segment_count": [
+      3.0,
+      11.0
+    ],
+    "departure_hour": [
+      0.0,
+      23.0
+    ],
+    "day_of_week": [
+      0.0,
+      6.0
+    ],
+    "month": [
+      1.0,
+      1.0
+    ],
+    "current_delay": [
+      0.0,
+      55.47455732257559
+    ],
+    "journey_progress": [
+      0.0004015649072635,
+      0.9192313820424852
+    ],
+    "weather_score": [
+      45.03904324152975,
+      99.92618521909108
+    ],
+    "rainfall": [
+      0.0,
+      13.954632126083029
+    ],
+    "temperature": [
+      14.046613390907895,
+      40.99053787596414
+    ],
+    "wind_speed": [
+      1.067716698778162,
+      37.85288276787629
+    ],
+    "visibility": [
+      1213.815734977922,
+      14930.153175521624
+    ],
+    "corridor_congestion": [
+      5.269186275582607,
+      84.65731830308057
+    ],
+    "station_pressure": [
+      5.41699920191071,
+      89.89476187392377
+    ],
+    "historical_delay": [
+      10.03127944963067,
+      89.85896944465108
+    ],
+    "schedule_conflicts": [
+      0.0,
+      2.0
+    ],
+    "port_pressure": [
+      10.46611457275233,
+      94.93297404979518
+    ],
+    "loading_window_delta": [
+      -179.52562798512548,
+      479.4768936741221
+    ],
+    "cargo_weight": [
+      40.03292783222794,
+      179.4411543549185
+    ]
+  },
+  "target": "remaining_delay_minutes",
+  "dataset": {
+    "row_count": 600,
+    "real_row_count": 0,
+    "simulated_row_count": 600,
+    "seeded_row_count": 0,
+    "operator_confirmed_row_count": 0,
+    "start_time": "2026-01-01T00:00:00+00:00",
+    "end_time": "2026-01-23T21:05:00+00:00",
+    "coverage_days": 23,
+    "routes_count": 9,
+    "corridors_count": 3,
+    "source_classes": {
+      "SIMULATED": 600
+    },
+    "missing_values": {},
+    "target": "remaining_delay_minutes",
+    "target_distribution": {
+      "min": 15.32,
+      "median": 83.7,
+      "mean": 83.89581666666666,
+      "max": 169.59
+    }
+  },
+  "metrics": {
+    "winner": "HistGradientBoostingRegressor",
+    "validation": {
+      "HistGradientBoostingRegressor": {
+        "mae_minutes": 7.332,
+        "rmse_minutes": 9.2642,
+        "median_ae_minutes": 5.6213,
+        "r2": 0.90185
+      },
+      "RandomForestRegressor": {
+        "mae_minutes": 9.8556,
+        "rmse_minutes": 12.9699,
+        "median_ae_minutes": 7.3998,
+        "r2": 0.80762
+      }
+    },
+    "test": {
+      "mae_minutes": 8.2392,
+      "rmse_minutes": 10.5964,
+      "median_ae_minutes": 6.5066,
+      "r2": 0.86636
+    },
+    "deterministic_baseline_test": {
+      "mae_minutes": 4.3341,
+      "rmse_minutes": 5.433,
+      "median_ae_minutes": 4.11,
+      "r2": 0.96487
+    },
+    "mae_improvement_pct": -90.1,
+    "split": {
+      "train_rows": 420,
+      "validation_rows": 90,
+      "test_rows": 90,
+      "train_end": "2026-01-17T00:05:00+00:00",
+      "validation_end": "2026-01-20T10:35:00+00:00",
+      "test_end": "2026-01-23T21:05:00+00:00"
+    }
+  },
+  "eligibility": {
+    "eligible": false,
+    "gates": {
+      "minimum_real_rows": false,
+      "minimum_coverage_days": true,
+      "minimum_corridors": true,
+      "no_synthetic_test_rows": false,
+      "beats_deterministic_by_10_pct": false,
+      "no_forbidden_feature_leakage": true
+    }
+  },
+  "created_at": "2026-08-22T11:29:19.968380+00:00"
+}

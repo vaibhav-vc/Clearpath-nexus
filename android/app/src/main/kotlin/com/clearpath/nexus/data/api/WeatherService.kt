@@ -1,39 +1,23 @@
 package com.clearpath.nexus.data.api
 
 import com.clearpath.nexus.data.model.WeatherCondition
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
- * Fetches current weather from OpenWeatherMap for a given lat/lon.
+ * Maps backend weather responses into the Android weather model.
  * Maps OWM weather codes to our condition legend symbols.
  */
 object WeatherService {
 
-    private const val API_KEY = "0d0b59d265f260d69aa579f8ca16ad85"
-    private const val BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
-
-    suspend fun fetchWeather(lat: Double, lon: Double): WeatherCondition? =
-        withContext(Dispatchers.IO) {
-            try {
-                val url = URL("$BASE_URL?lat=$lat&lon=$lon&appid=$API_KEY&units=metric")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 8_000
-                conn.readTimeout = 8_000
-                conn.requestMethod = "GET"
-
-                if (conn.responseCode != 200) return@withContext null
-
-                val body = conn.inputStream.bufferedReader().use { it.readText() }
-                conn.disconnect()
-                parseResponse(body)
-            } catch (_: Exception) {
-                null
-            }
+    suspend fun fetchWeather(lat: Double, lon: Double): WeatherCondition? {
+        return try {
+            val response = BackendApiClient.get("/weather/environmental?lat=$lat&lon=$lon")
+            val weather = JSONObject(response).optJSONObject("weather") ?: return null
+            parseResponse(weather.toString())
+        } catch (_: Exception) {
+            null
         }
+    }
 
     private fun parseResponse(json: String): WeatherCondition? {
         return try {

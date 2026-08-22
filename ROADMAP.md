@@ -1,29 +1,24 @@
-# ClearPath Nexus — Roadmap
+# ClearPath Nexus roadmap
 
-## Round 1 — Completed
-- Cargo clearance evaluation (height, width, weight)  
-- Reliability scoring with weighted formula
-- Live weather via OpenWeatherMap
-- Real railway station detection via Overpass API
-- Actual track geometry from OpenStreetMap
-- Multi-destination routing (up to 5 waypoints)
-- SQLite local database with offline caching
-- Glassmorphism + Bento UI design system
-- Dark mode with theme toggle
-- GPS location with live dot
-- Skeleton loading, haptics, toast notifications
-- Onboarding carousel
-- Error boundary and offline mode
+## Stabilized in v5
 
-## Round 2 — Pending Judge Feedback
-<!-- Add judge suggestions here during the event -->
+- Supabase-issued auth with backend operational authorization.
+- Deterministic route, clearance, reliability, schedule, dispatch, weather, congestion, and port-window workflows.
+- SourceLine decision snapshots, source catalog, freshness, lineage, evidence APIs, and web inspection.
+- ComplianceGuard deterministic metadata/expiry review and override audit.
 
-## Future Vision
-- Live JNPT port congestion data integration
-- ML-based reliability model trained on IR delay data
-- Multi-modal routing (rail + road last mile)
-- Push notifications for route status changes
-- User accounts and team collaboration
-- Government API integration with Indian Railways
-- Predictive delay forecasting
-- Cargo compliance document generation
+## Next
+
+- Postgres integration tests for ownership isolation and migration upgrades in CI.
+- Android evidence-detail and ComplianceGuard screens.
+- Curated, jurisdiction-specific compliance rule sources reviewed by qualified personnel.
+- Backend-owned Android persistence to replace the remaining direct PostgREST write path.
+- Source catalog administration and data-retention controls for evidence/documents.
+
+## Later
+
+- Provenance-backed operational event engine.
+- Verified cost/carbon inputs and operator comparison modes.
+- Multimodal factory-road-rail-port-vessel planning after the rail MVP is stable.
+
+No future item should appear in the product UI as implemented until code, migration, tests, and documentation exist.

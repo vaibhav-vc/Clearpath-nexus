@@ -38,8 +38,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.jan.supabase.auth.auth
-import com.clearpath.nexus.data.api.SupabaseClient
 import com.clearpath.nexus.ui.theme.*
 import com.clearpath.nexus.R
 import androidx.compose.ui.res.painterResource
@@ -63,6 +61,7 @@ fun loadBitmapFromUri(context: Context, uriString: String): Bitmap? {
 @Composable
 fun UserPanel(
     onSignOut: () -> Unit,
+    userEmail: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -86,12 +85,8 @@ fun UserPanel(
         }
     }
 
-    val currentUser = remember { SupabaseClient.client.auth.currentUserOrNull() }
-    val email = currentUser?.email ?: "anonymous@clearpath.net"
-    val displayName = remember {
-        val rawName = currentUser?.userMetadata?.get("display_name")?.toString() ?: ""
-        rawName.replace("\"", "").trim().ifEmpty { "Command Officer" }
-    }
+    val email = userEmail ?: "anonymous@clearpath.net"
+    val displayName = "Command Officer"
 
     Column(
         modifier = modifier
@@ -288,7 +283,7 @@ fun UserPanel(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "1. Operational clearance models must be validated prior to launching command units.\n\n2. Real-time telemetry simulation values do not supersede local authority signaling protocols.\n\n3. Routing data collected is encrypted and synced with the central Supabase command storage.",
+                    text = "1. Operational clearance models must be validated prior to launching command units.\n\n2. Real-time telemetry simulation values do not supersede local authority signaling protocols.\n\n3. Routing data is sent to the configured ClearPath backend over the authenticated API.",
                     color = TextMuted,
                     fontSize = 11.sp,
                     lineHeight = 16.sp

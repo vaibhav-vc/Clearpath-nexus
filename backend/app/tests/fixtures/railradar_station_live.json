@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "data": {
+    "station": { "code": "BSL", "name": "Bhusaval Junction" },
+    "window": { "from": "07:54", "to": "15:54", "hoursBack": 4, "hoursAhead": 4 },
+    "count": 4,
+    "trains": [
+      {
+        "train": { "number": "12919", "name": "Malwa SF Express", "type": "Superfast Express", "source": "INDB", "destination": "SVDK" },
+        "stop": { "sequence": 1, "arrival": null, "departure": "23:55", "day": 1, "distance": 0 },
+        "live": { "type": "at-station", "expectedDepartureTime": "2026-08-21T23:55:00+05:30", "platform": "4", "delayMinutes": 0 }
+      },
+      {
+        "train": { "number": "12139", "name": "Sewagram Express", "type": "Superfast Express", "source": "NGP", "destination": "CSMT" },
+        "stop": { "sequence": 8, "arrival": "09:10", "departure": "09:20", "day": 1, "distance": 420 },
+        "live": { "type": "upcoming", "expectedDepartureTime": "2026-08-21T10:05:00+05:30", "platform": "2", "delayMinutes": 45 }
+      },
+      {
+        "train": { "number": "11039", "name": "Maharashtra Express", "type": "Express", "source": "KOP", "destination": "GDA" },
+        "stop": { "sequence": 14, "arrival": "11:30", "departure": "11:35", "day": 2, "distance": 780 },
+        "live": { "type": "upcoming", "expectedDepartureTime": "2026-08-21T12:35:00+05:30", "platform": "1", "delayMinutes": 60 }
+      },
+      {
+        "train": { "number": "12809", "name": "Howrah Mail", "type": "Mail", "source": "HWH", "destination": "CSMT" },
+        "stop": { "sequence": 22, "arrival": "14:05", "departure": "14:10", "day": 2, "distance": 1650 },
+        "live": { "type": "departed", "expectedDepartureTime": "2026-08-21T14:25:00+05:30", "platform": "3", "delayMinutes": 15 }
+      }
+    ]
+  },
+  "meta": { "traceId": "550e8400-e29b-41d4-a716-446655440000", "timestamp": "2026-08-21T12:30:00+05:30", "executionTime": 38, "source": "database" }
+}

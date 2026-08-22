@@ -2,8 +2,18 @@
 __pycache__/
 *.py[cod]
 venv/
+.venv/
 .env
+.tools/
+**/.gradle/
+**/.kotlin/
+**/build/
+**/__pycache__/
+**/.pytest_cache/
+**/node_modules/
+**/dist/
 *.egg-info/
+backend/artifacts/datasets/
 
 # Node
 node_modules/
@@ -33,3 +43,9 @@ android/**/build/
 android/**/*.iml
 android/.cxx/
 android/captures/
+*.keystore
+*.jks
+key.properties
+
+# Release binaries are delivered separately; keep source and checksums in Git.
+release/*.apk

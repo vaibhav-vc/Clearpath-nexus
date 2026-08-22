@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SegmentPath, Station } from '../types/route'
 import { sampleRoutePoints } from '../services/weatherConditions'
+import { fetchRouteWeatherPoints } from '../services/api'
 
 export interface RouteWeatherPoint {
   id: string
@@ -26,9 +27,6 @@ export interface RouteWeatherPoint {
 }
 
 const POLL_MS = 10 * 60 * 1000 // 10 minutes
-
-const OPEN_METEO_BASE =
-  'https://api.open-meteo.com/v1/forecast?current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,visibility,uv_index,precipitation&timezone=auto'
 
 function weatherCodeToLabel(code: number): string {
   if (code === 0) return 'Clear sky'
@@ -74,34 +72,39 @@ function idToLabel(id: string, stations: Station[]): string {
   return id
 }
 
-async function fetchPointWeather(
-  lat: number,
-  lon: number,
-  id: string,
+function toRouteWeatherPoint(
+  weather: {
+    id: string
+    lat: number
+    lon: number
+    temperature_2m: number
+    apparent_temperature: number
+    relative_humidity_2m: number
+    weather_code: number
+    wind_speed_10m: number
+    wind_direction_10m: number
+    visibility: number
+    uv_index: number
+    precipitation: number
+  },
   stations: Station[],
-): Promise<RouteWeatherPoint> {
-  const url = `${OPEN_METEO_BASE}&latitude=${lat}&longitude=${lon}`
-  const resp = await fetch(url)
-  if (!resp.ok) throw new Error(`Open-Meteo ${resp.status} for ${id}`)
-  const json = await resp.json()
-  const c = json.current
-
+): RouteWeatherPoint {
   return {
-    id,
-    label: idToLabel(id, stations),
-    lat,
-    lon,
-    temperature: Math.round(c.temperature_2m * 10) / 10,
-    feelsLike: Math.round(c.apparent_temperature * 10) / 10,
-    humidity: Math.round(c.relative_humidity_2m),
-    windSpeed: Math.round(c.wind_speed_10m),
-    windDirection: Math.round(c.wind_direction_10m),
-    visibility: c.visibility ?? 10000,
-    uvIndex: Math.round(c.uv_index * 10) / 10,
-    weatherCode: c.weather_code,
-    weatherLabel: weatherCodeToLabel(c.weather_code),
-    precipMm: Math.round(c.precipitation * 10) / 10,
-    condition: weatherCodeToCondition(c.weather_code),
+    id: weather.id,
+    label: idToLabel(weather.id, stations),
+    lat: weather.lat,
+    lon: weather.lon,
+    temperature: Math.round(weather.temperature_2m * 10) / 10,
+    feelsLike: Math.round(weather.apparent_temperature * 10) / 10,
+    humidity: Math.round(weather.relative_humidity_2m),
+    windSpeed: Math.round(weather.wind_speed_10m),
+    windDirection: Math.round(weather.wind_direction_10m),
+    visibility: weather.visibility,
+    uvIndex: Math.round(weather.uv_index * 10) / 10,
+    weatherCode: weather.weather_code,
+    weatherLabel: weatherCodeToLabel(weather.weather_code),
+    precipMm: Math.round(weather.precipitation * 10) / 10,
+    condition: weatherCodeToCondition(weather.weather_code),
   }
 }
 
@@ -130,25 +133,17 @@ export function useRouteWeather(
         return
       }
 
-      const results = await Promise.allSettled(
-        sampled.map((p) => fetchPointWeather(p.lat, p.lon, p.id, stations)),
+      const response = await fetchRouteWeatherPoints({ points: sampled })
+      const available = response.points.filter((point: { available: boolean }) => point.available)
+      const unavailable = response.points.filter((point: { available: boolean }) => !point.available)
+      const fetched = available.map((point: Parameters<typeof toRouteWeatherPoint>[0]) =>
+        toRouteWeatherPoint(point, stations),
       )
-
-      const fetched: RouteWeatherPoint[] = []
-      const errors: string[] = []
-
-      results.forEach((r, i) => {
-        if (r.status === 'fulfilled') {
-          fetched.push(r.value)
-        } else {
-          errors.push(`Point ${sampled[i]?.id}: ${r.reason}`)
-        }
-      })
 
       setPoints(fetched)
       setLastUpdated(new Date())
-      if (errors.length > 0) {
-        setError(`${errors.length} point(s) failed to fetch weather.`)
+      if (unavailable.length > 0) {
+        setError(`${unavailable.length} point(s) are unavailable; do not use missing records for dispatch decisions.`)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Weather fetch failed')

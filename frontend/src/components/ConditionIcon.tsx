@@ -104,23 +104,6 @@ function svgInner(type: ConditionType): string {
   }
 }
 
-export function conditionIconSvgDataUrl(type: ConditionType, size = 28): string {
-  const cat = typeCategory(type)
-  const border = CATEGORY_COLORS[cat].stroke
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="' +
-    size +
-    '" height="' +
-    size +
-    '" viewBox="0 0 24 24">' +
-    '<rect x="0" y="0" width="24" height="24" rx="6" fill="rgba(15,23,42,0.92)" stroke="' +
-    border +
-    '" stroke-width="1.5"/>' +
-    svgInner(type) +
-    '</svg>'
-  return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
-}
-
 export default function ConditionIcon({ type, size = 22, className = '' }: Props) {
   const cat = typeCategory(type)
   const border = CATEGORY_COLORS[cat].stroke
@@ -131,6 +114,7 @@ export default function ConditionIcon({ type, size = 22, className = '' }: Props
       style={{ width: size + 6, height: size + 6, borderColor: border }}
       aria-hidden
     >
+      {/* svgInner only accepts the closed ConditionType enum; no user-controlled markup reaches this sink. */}
       <svg width={size} height={size} viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: svgInner(type) }} />
     </span>
   )

@@ -1,0 +1,256 @@
+{
+  "model_name": "delay_predictor",
+  "version": "1.1.0-benchmark",
+  "status": "CANDIDATE",
+  "production": false,
+  "algorithm": "GradientBoostingRegressor",
+  "artifact_path": "delay_predictor/1.1.0-benchmark/model.joblib",
+  "artifact_checksum": "114566c0e3be140b9d38ff9bb95d514a0a46bec92de98811271e1faa872eb0d1",
+  "metrics_path": "delay_predictor/1.1.0-benchmark/metrics.json",
+  "feature_schema_version": "delay_features_v1",
+  "feature_list": [
+    "route_distance",
+    "segment_count",
+    "departure_hour",
+    "day_of_week",
+    "month",
+    "current_delay",
+    "journey_progress",
+    "weather_score",
+    "rainfall",
+    "temperature",
+    "wind_speed",
+    "visibility",
+    "corridor_congestion",
+    "station_pressure",
+    "historical_delay",
+    "schedule_conflicts",
+    "port_pressure",
+    "loading_window_delta",
+    "cargo_weight"
+  ],
+  "feature_bounds": {
+    "route_distance": [
+      53.02632925730488,
+      851.9066051709334
+    ],
+    "segment_count": [
+      3.0,
+      11.0
+    ],
+    "departure_hour": [
+      0.0,
+      23.0
+    ],
+    "day_of_week": [
+      0.0,
+      6.0
+    ],
+    "month": [
+      1.0,
+      1.0
+    ],
+    "current_delay": [
+      0.0,
+      55.47455732257559
+    ],
+    "journey_progress": [
+      0.0004015649072635,
+      0.9192313820424852
+    ],
+    "weather_score": [
+      45.03904324152975,
+      99.9358382271769
+    ],
+    "rainfall": [
+      0.0,
+      13.954632126083029
+    ],
+    "temperature": [
+      14.039754210737724,
+      40.99053787596414
+    ],
+    "wind_speed": [
+      1.067716698778162,
+      37.92536006614227
+    ],
+    "visibility": [
+      1213.815734977922,
+      14930.153175521624
+    ],
+    "corridor_congestion": [
+      5.269186275582607,
+      84.65731830308057
+    ],
+    "station_pressure": [
+      5.359394070181772,
+      89.89476187392377
+    ],
+    "historical_delay": [
+      10.03127944963067,
+      89.85896944465108
+    ],
+    "schedule_conflicts": [
+      0.0,
+      2.0
+    ],
+    "port_pressure": [
+      10.46611457275233,
+      94.93297404979518
+    ],
+    "loading_window_delta": [
+      -179.52562798512548,
+      479.4768936741221
+    ],
+    "cargo_weight": [
+      40.01910554872685,
+      179.4411543549185
+    ]
+  },
+  "target": "remaining_delay_minutes",
+  "dataset": {
+    "row_count": 600,
+    "real_row_count": 0,
+    "simulated_row_count": 600,
+    "seeded_row_count": 0,
+    "operator_confirmed_row_count": 0,
+    "start_time": "2026-01-01T00:00:00+00:00",
+    "end_time": "2026-01-23T21:05:00+00:00",
+    "coverage_days": 23,
+    "routes_count": 9,
+    "corridors_count": 3,
+    "source_classes": {
+      "SIMULATED": 600
+    },
+    "missing_values": {},
+    "target": "remaining_delay_minutes",
+    "target_distribution": {
+      "min": 15.32,
+      "median": 83.7,
+      "mean": 83.89581666666666,
+      "max": 169.59
+    }
+  },
+  "source_dataset_checksum": "d90d5374fc364204c122f069029e1469c2fbab56b9f1ee8f6b7e52821ed930a3",
+  "benchmark_checksum": "a354f12543a1595c291a2c7178ab5d771d0b4e42fdbecf4d174cc1ee013c9a48",
+  "winner_parameters": {
+    "n_estimators": 180,
+    "learning_rate": 0.05,
+    "max_depth": 3,
+    "min_samples_leaf": 3,
+    "loss": "huber",
+    "random_state": 520
+  },
+  "metrics": {
+    "winner": "GradientBoostingRegressor",
+    "validation": {
+      "HistGradientBoostingRegressor": {
+        "mae_minutes": 7.332,
+        "rmse_minutes": 9.2642,
+        "median_ae_minutes": 5.6213,
+        "r2": 0.90185
+      },
+      "RandomForestRegressor": {
+        "mae_minutes": 9.9241,
+        "rmse_minutes": 13.0362,
+        "median_ae_minutes": 7.4569,
+        "r2": 0.80565
+      },
+      "ExtraTreesRegressor": {
+        "mae_minutes": 9.1574,
+        "rmse_minutes": 11.5501,
+        "median_ae_minutes": 7.9948,
+        "r2": 0.84743
+      },
+      "GradientBoostingRegressor": {
+        "mae_minutes": 7.1403,
+        "rmse_minutes": 9.4889,
+        "median_ae_minutes": 5.1271,
+        "r2": 0.89703
+      }
+    },
+    "test": {
+      "mae_minutes": 7.4394,
+      "rmse_minutes": 10.0794,
+      "median_ae_minutes": 5.5613,
+      "r2": 0.87909
+    },
+    "deterministic_baseline_test": {
+      "mae_minutes": 4.3341,
+      "rmse_minutes": 5.433,
+      "median_ae_minutes": 4.11,
+      "r2": 0.96487
+    },
+    "mae_improvement_pct": -71.65,
+    "selection_metric": "validation_mae_minutes",
+    "candidates_evaluated": 4,
+    "test_evaluations": 1,
+    "winner_refit_on_train_and_validation": true,
+    "candidate_parameters": {
+      "HistGradientBoostingRegressor": {
+        "max_iter": 180,
+        "learning_rate": 0.06,
+        "max_leaf_nodes": 24,
+        "random_state": 520
+      },
+      "RandomForestRegressor": {
+        "n_estimators": 160,
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "random_state": 520,
+        "n_jobs": 1
+      },
+      "ExtraTreesRegressor": {
+        "n_estimators": 160,
+        "max_depth": 14,
+        "min_samples_leaf": 2,
+        "max_features": 1.0,
+        "random_state": 520,
+        "n_jobs": 1
+      },
+      "GradientBoostingRegressor": {
+        "n_estimators": 180,
+        "learning_rate": 0.05,
+        "max_depth": 3,
+        "min_samples_leaf": 3,
+        "loss": "huber",
+        "random_state": 520
+      }
+    },
+    "split": {
+      "train_rows": 420,
+      "validation_rows": 90,
+      "test_rows": 90,
+      "winner_fit_rows": 510,
+      "train_end": "2026-01-17T00:05:00+00:00",
+      "validation_end": "2026-01-20T10:35:00+00:00",
+      "test_end": "2026-01-23T21:05:00+00:00"
+    }
+  },
+  "uncertainty": {
+    "method": "HELD_OUT_ABSOLUTE_RESIDUAL_QUANTILE",
+    "nominal_coverage": 0.9,
+    "calibration_rows": 90,
+    "calibration_source_types": {
+      "SIMULATED": 90
+    },
+    "trusted_operational_calibration": false,
+    "ml_absolute_error_p90": 15.22,
+    "deterministic_absolute_error_p90": 8.951
+  },
+  "eligibility": {
+    "eligible": false,
+    "gates": {
+      "minimum_real_rows": false,
+      "minimum_coverage_days": true,
+      "minimum_corridors": true,
+      "no_synthetic_test_rows": false,
+      "beats_deterministic_by_10_pct": false,
+      "no_forbidden_feature_leakage": true
+    }
+  },
+  "created_at": "2026-08-22T11:59:27.950740+00:00",
+  "metadata_checksum": "17281eafc8b7570cd1a5e22d74c098a9df1c4c494d8f6151b71dbd2a1e56b022",
+  "metadata_checksum_path": "delay_predictor/1.1.0-benchmark/metadata.sha256",
+  "metrics_checksum": "4dc00fbd602b04348675d5cf92d86ce3ece7b89d67940c9be66c85e4c8aafe96"
+}

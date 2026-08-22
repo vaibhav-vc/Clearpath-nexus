@@ -136,6 +136,27 @@ fun TelemetryPanel(
             }
         }
 
+        result?.provenanceSummary?.let { sourceLine ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, AccentSafetyBlue.copy(alpha = 0.45f))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("NEXUS SOURCELINE", color = AccentSafetyBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Traceability: ${sourceLine.tracedInputs} / ${sourceLine.totalInputs} decision inputs (${sourceLine.coveragePct}%)",
+                    color = TextLight,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                )
+                sourceLine.warnings.firstOrNull()?.let { warning ->
+                    Text(warning, color = SolarRiskAmber, fontSize = 10.sp)
+                }
+            }
+        }
+
         // ── Active Cargo Load Profile ────────────────────────────────────────
         if (activeProfile != null) {
             Column(

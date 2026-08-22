@@ -54,17 +54,28 @@ export async function suggestRouteThroughWaypoints(payload: {
         train_arrival_hours: payload.trainArrivalHours,
       })
       legs.push(data)
-    } catch {
-      const fallback = (await evaluateRoute({
+    } catch (error) {
+      if (location.mode !== 'station' || !location.station_code) throw error
+      const evaluated = await evaluateRoute({
         cargo: payload.cargo,
-        source_code:
-          location.mode === 'station' && location.station_code
-            ? location.station_code
-            : 'NGP',
+        source_code: location.station_code,
         dest_code: destinationCode,
         train_arrival_hours: payload.trainArrivalHours,
-      })) as RouteSuggestResponse
-      legs.push(fallback)
+      })
+      const firstPoint = evaluated.segments[0]?.coordinates[0] ?? [0, 0]
+      legs.push({
+        ...evaluated,
+        train_position: {
+          mode: 'station',
+          station_code: location.station_code,
+          lat: firstPoint[0],
+          lon: firstPoint[1],
+        },
+        remaining_km: 0,
+        eta_hours: evaluated.estimated_hours,
+        track_details: [],
+        alternate_routes: [],
+      })
     }
 
     location = { mode: 'station', station_code: destinationCode }

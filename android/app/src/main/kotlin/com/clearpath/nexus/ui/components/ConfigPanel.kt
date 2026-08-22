@@ -12,6 +12,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,9 @@ fun ConfigPanel(
     sourceCode: String,
     destCode: String,
     trainHours: String,
+    useBerthWindow: Boolean,
+    berthStartHours: String,
+    berthEndHours: String,
     stations: List<Station>,
     stops: List<String>,
     isLoading: Boolean,
@@ -57,6 +61,9 @@ fun ConfigPanel(
     onSourceChange: (String) -> Unit,
     onDestChange: (String) -> Unit,
     onTrainHoursChange: (String) -> Unit,
+    onUseBerthWindowChange: (Boolean) -> Unit,
+    onBerthStartHoursChange: (String) -> Unit,
+    onBerthEndHoursChange: (String) -> Unit,
     onStopsChange: (List<String>) -> Unit,
     onAddStopClick: () -> Unit,
     onEvaluate: () -> Unit,
@@ -146,6 +153,41 @@ fun ConfigPanel(
             singleLine = true,
             colors = fieldColors(),
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = useBerthWindow, onCheckedChange = onUseBerthWindowChange)
+            Text("Use operator berth window", color = TextLight, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+        }
+
+        if (useBerthWindow) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = berthStartHours,
+                    onValueChange = onBerthStartHoursChange,
+                    label = { Text("Berth starts in h", fontSize = 10.sp) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    colors = fieldColors(),
+                )
+                OutlinedTextField(
+                    value = berthEndHours,
+                    onValueChange = onBerthEndHoursChange,
+                    label = { Text("Berth ends in h", fontSize = 10.sp) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    colors = fieldColors(),
+                )
+            }
+            Text(
+                "Operator/manifest window is sent to FastAPI; no fake live berth schedule.",
+                color = TextMuted,
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
 
         Button(
             onClick = onEvaluate,

@@ -1,0 +1,38 @@
+{
+  "winner": "HistGradientBoostingRegressor",
+  "validation": {
+    "HistGradientBoostingRegressor": {
+      "mae_minutes": 7.332,
+      "rmse_minutes": 9.2642,
+      "median_ae_minutes": 5.6213,
+      "r2": 0.90185
+    },
+    "RandomForestRegressor": {
+      "mae_minutes": 9.8556,
+      "rmse_minutes": 12.9699,
+      "median_ae_minutes": 7.3998,
+      "r2": 0.80762
+    }
+  },
+  "test": {
+    "mae_minutes": 8.2392,
+    "rmse_minutes": 10.5964,
+    "median_ae_minutes": 6.5066,
+    "r2": 0.86636
+  },
+  "deterministic_baseline_test": {
+    "mae_minutes": 4.3341,
+    "rmse_minutes": 5.433,
+    "median_ae_minutes": 4.11,
+    "r2": 0.96487
+  },
+  "mae_improvement_pct": -90.1,
+  "split": {
+    "train_rows": 420,
+    "validation_rows": 90,
+    "test_rows": 90,
+    "train_end": "2026-01-17T00:05:00+00:00",
+    "validation_end": "2026-01-20T10:35:00+00:00",
+    "test_end": "2026-01-23T21:05:00+00:00"
+  }
+}
