@@ -191,12 +191,9 @@ export default function CommandDashboard() {
   const environmentalZones = useMemo(() => conditionsToZones(mapConditions), [mapConditions])
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-[#0F2D59]">
-      <header className="px-6 py-3 bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 border-b border-blue-800/60 flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">ClearPath Nexus</h1>
-          <p className="text-xs text-blue-300 font-mono">Load profiles · live track routing</p>
-        </div>
+    <div className="h-full overflow-hidden flex flex-col bg-[#0F2D59]">
+      <header className="px-6 py-2 bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 border-b border-blue-800/60 flex items-center justify-between shrink-0">
+        <p className="text-xs text-blue-300 font-mono">Load profiles · live track routing</p>
         <div className="flex items-center gap-3">
           {routeApproved ? (
             <span className="hidden sm:flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/40 px-3 py-1">
@@ -208,7 +205,7 @@ export default function CommandDashboard() {
             <span className="text-[10px] font-mono uppercase text-emerald-300">Client-side maps</span>
           </span>
           <span className="px-3 py-1 bg-blue-600 text-white text-xs font-mono rounded-full shadow-lg shadow-blue-900/50">
-            MVP v1.0
+            v6.0
           </span>
         </div>
       </header>
@@ -424,24 +421,30 @@ export default function CommandDashboard() {
         </div>
 
         <main className="flex-1 p-3 bg-[#121a2e] overflow-hidden">
-          <div className="map-glow h-full rounded-xl">
-            {mapReady || result ? (
-              <MapViewer
-                segments={result?.segments ?? []}
-                stations={stationList}
-                environmentalZones={environmentalZones}
-                mapConditions={mapConditions}
-                routeLabel={routeLabel}
-                trainPosition={result?.train_position}
-                liveWeatherUpdated={liveWeatherUpdated}
-              />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-600 bg-slate-900/50">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-600 bg-slate-800/80">
-                  <span className="text-xs font-mono font-bold text-slate-400">MAP</span>
+          {/* The map always renders. Before an evaluation it still shows the
+              network and its stations; the hint below is an overlay rather
+              than a replacement, so the operator is never faced with a blank
+              panel where the corridor is expected. */}
+          <div className="map-glow relative h-full rounded-xl">
+            <MapViewer
+              segments={result?.segments ?? []}
+              stations={stationList}
+              environmentalZones={environmentalZones}
+              mapConditions={mapConditions}
+              routeLabel={routeLabel}
+              trainPosition={result?.train_position}
+              liveWeatherUpdated={liveWeatherUpdated}
+            />
+            {!(mapReady || result) && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] flex justify-center p-4">
+                <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-slate-600/70 bg-slate-900/90 px-4 py-2 shadow-xl backdrop-blur">
+                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-cyan-400" />
+                  <p className="font-mono text-xs text-slate-300">
+                    {stationList.length > 0
+                      ? `${stationList.length} stations loaded — run an evaluation to plot a corridor`
+                      : 'Waiting for station data from the backend'}
+                  </p>
                 </div>
-                <p className="font-mono text-sm text-slate-400">Run an evaluation to render the corridor on the operations map</p>
-                <p className="text-xs text-slate-500">Map tiles stream from OpenStreetMap to your browser — not through our API</p>
               </div>
             )}
           </div>

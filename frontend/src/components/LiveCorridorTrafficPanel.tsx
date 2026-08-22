@@ -103,11 +103,31 @@ export default function LiveCorridorTrafficPanel() {
           {error}
         </div>
       ) : data && !data.available ? (
-        <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-400">
-          {data.message ?? 'Live corridor traffic provider is not configured.'}
-          <div className="mt-2 text-[11px] text-slate-500">
-            Set <code className="text-cyan-400">RAILRADAR_API_KEY</code> in the backend
-            environment to enable this layer with a free RailRadar sandbox key.
+        <div className="rounded-xl border border-slate-700/70 bg-slate-950/80 p-5">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-600 bg-slate-900">
+              <span className="h-2 w-2 rounded-full bg-slate-500" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-sm font-semibold text-slate-200">Layer not configured</h4>
+                <span className="rounded-full border border-slate-600/70 bg-slate-800/70 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                  Unavailable
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                {data.message ?? 'Live corridor traffic provider is not configured.'}
+              </p>
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+                Set <code className="rounded bg-slate-800/80 px-1 py-0.5 font-mono text-cyan-400">RAILRADAR_API_KEY</code>{' '}
+                in the backend environment to enable this layer with a free RailRadar sandbox key,
+                then restart the backend.
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-600">
+                Routing, clearance, and scheduling are unaffected — this layer is a supplementary
+                overlay, and no traffic is estimated while it is off.
+              </p>
+            </div>
           </div>
         </div>
       ) : data ? (

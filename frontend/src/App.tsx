@@ -22,10 +22,20 @@ function OperationsApp() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('command')
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
 
+  // The command console manages its own full-height layout, so it renders
+  // full-bleed. Every other module keeps the centred, padded reading column.
+  const isCommandConsole = activeTab === 'command'
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+    <div className="h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden">
       <HeaderNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+      <main
+        className={
+          isCommandConsole
+            ? 'flex-1 min-h-0'
+            : 'flex-1 min-h-0 overflow-y-auto max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6'
+        }
+      >
         <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-sm text-slate-400">Loading operations module…</div>}>
         {activeTab === 'command' && <CommandDashboard />}
         {activeTab === 'predictive' && <PredictiveDelayPanel />}

@@ -2,8 +2,19 @@ import { useMemo, useState } from 'react'
 import { Circle, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import type { EnvironmentalZone, MapCondition, SegmentPath, Station, TrackSegmentDetail, TrainPosition } from '../types/route'
 import MapLegend from './MapLegend'
+
+// Leaflet's default icon resolves its images by relative URL, which breaks under
+// a bundler. Bind the bundled assets so station and train markers actually render.
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+})
 
 const DEFAULT_CENTER: [number, number] = [21.1458, 79.0882]
 
