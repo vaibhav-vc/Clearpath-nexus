@@ -25,6 +25,17 @@ const REMEDIATION: Readonly<Record<string, Readonly<Record<string, RemediationHi
       blastRadius:
         'Routing, clearance, and scheduling are unaffected — this layer is a supplementary overlay, and no traffic is estimated while it is off.',
     },
+    AUTH_REQUIRED: {
+      envVar: 'RAILRADAR_API_KEY',
+      text: 'is set but RailRadar rejected it. Check the key for typos or expiry, then restart the backend.',
+      blastRadius:
+        'Routing, clearance, and scheduling are unaffected. No traffic is estimated while the key is rejected.',
+    },
+    RATE_LIMITED: {
+      text: 'The RailRadar request quota is exhausted. It resets on the provider billing cycle.',
+      blastRadius:
+        'Routing, clearance, and scheduling are unaffected. Cached corridor results keep serving until they expire.',
+    },
   },
   // TrainSyncState.provider_key -- services/ixigo_sync.py
   ixigo_partner: {

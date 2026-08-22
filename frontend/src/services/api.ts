@@ -105,6 +105,8 @@ export interface LiveCorridorTrain {
 export interface LiveCorridorTrafficResponse {
   available: boolean
   provider: string
+  /** Why the layer is off: NOT_CONFIGURED, AUTH_REQUIRED, RATE_LIMITED, UNAVAILABLE. */
+  state?: string
   source_code?: string
   dest_code?: string
   trains: LiveCorridorTrain[]

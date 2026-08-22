@@ -43,6 +43,9 @@ class LiveCorridorTrain(BaseModel):
 class LiveCorridorTrafficResponse(BaseModel):
     available: bool
     provider: str
+    # Why the layer is off, so a rejected key is not reported as an absent one.
+    # NOT_CONFIGURED | AUTH_REQUIRED | RATE_LIMITED | UNAVAILABLE | AVAILABLE
+    state: str = "AVAILABLE"
     source_code: str | None = None
     dest_code: str | None = None
     trains: list[LiveCorridorTrain] = []

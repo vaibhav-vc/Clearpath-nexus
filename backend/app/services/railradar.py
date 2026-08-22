@@ -17,9 +17,26 @@ logger = logging.getLogger(__name__)
 UNAVAILABLE_TRAFFIC = {
     "available": False,
     "provider": "railradar",
+    "state": "NOT_CONFIGURED",
     "trains": [],
-    "message": "Live train-traffic provider unavailable or not configured.",
+    "message": "Live train-traffic provider is not configured.",
 }
+
+
+def _unavailable(state: str, message: str) -> dict[str, Any]:
+    """An off envelope that says which kind of off it is.
+
+    A rejected key and an absent key are different problems with different
+    fixes, and reporting the first as the second sends an operator looking for
+    a configuration fault that does not exist.
+    """
+    return {
+        "available": False,
+        "provider": "railradar",
+        "state": state,
+        "trains": [],
+        "message": message,
+    }
 
 # How many trains (max) to pull live status for per corridor query, to stay
 # well inside the free sandbox's 1,000 requests/month.
@@ -28,6 +45,22 @@ _MAX_LIVE_LOOKUPS = 5
 
 def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {settings.RAILRADAR_API_KEY}"}
+
+
+def _corridor_candidates(data: Any) -> list[dict[str, Any]]:
+    """Pull the train list out of a /trains/between payload.
+
+    The endpoint wraps its results in an object -- {from, to, trains, count} --
+    so treating `data` as the list itself raised `unhashable type: 'slice'`
+    against a real key. A bare list is still accepted in case the shape
+    changes back.
+    """
+    if isinstance(data, dict):
+        trains = data.get("trains")
+        return [item for item in trains if isinstance(item, dict)] if isinstance(trains, list) else []
+    if isinstance(data, list):
+        return [item for item in data if isinstance(item, dict)]
+    return []
 
 
 async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, Any]:
@@ -56,17 +89,22 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
             if not envelope.get("success"):
                 raise ValueError("RailRadar returned an unsuccessful response envelope")
 
-            candidates = envelope.get("data") or []
+            candidates = _corridor_candidates(envelope.get("data"))
             trains: list[dict[str, Any]] = []
             alerts: list[str] = []
 
             for candidate in candidates[:_MAX_LIVE_LOOKUPS]:
-                train_number = candidate.get("trainNumber")
+                # /trains/between nests identity under `train`, unlike
+                # /trains/{n}/live which carries trainNumber at the top level.
+                identity = candidate.get("train") or {}
+                train_number = identity.get("number") or candidate.get("trainNumber")
                 if not train_number:
                     continue
                 live_entry = {
-                    "train_number": train_number,
-                    "train_name": candidate.get("trainName", "Unknown"),
+                    "train_number": str(train_number),
+                    "train_name": identity.get("name")
+                    or candidate.get("trainName")
+                    or "Unknown",
                     "status": "unknown",
                     "delay_minutes": None,
                 }
@@ -102,9 +140,35 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
             await space_weather_service._cache_set(cache_key, payload, ttl=120)
             provider_status.record_success("railradar")
             return payload
+    except httpx.HTTPStatusError as exc:
+        provider_status.record_failure("railradar")
+        status_code = exc.response.status_code
+        logger.warning(
+            "RailRadar corridor fetch rejected for %s->%s: HTTP %s",
+            source_code,
+            dest_code,
+            status_code,
+        )
+        if status_code in (401, 403):
+            return _unavailable(
+                "AUTH_REQUIRED",
+                "RailRadar rejected the configured API key. The key is present but not accepted.",
+            )
+        if status_code == 429:
+            return _unavailable(
+                "RATE_LIMITED",
+                "The RailRadar request quota is exhausted, so no live traffic was retrieved.",
+            )
+        return _unavailable(
+            "UNAVAILABLE",
+            f"RailRadar returned HTTP {status_code}, so no live traffic was retrieved.",
+        )
     except Exception as exc:
         provider_status.record_failure("railradar")
         logger.warning(
             "RailRadar corridor fetch failed for %s->%s: %s", source_code, dest_code, exc
         )
-        return UNAVAILABLE_TRAFFIC
+        return _unavailable(
+            "UNAVAILABLE",
+            "The live train-traffic provider could not be reached.",
+        )

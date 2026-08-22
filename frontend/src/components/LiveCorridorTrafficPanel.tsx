@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchStations, fetchLiveCorridorTraffic, type LiveCorridorTrafficResponse } from '../services/api'
 import type { Station } from '../types/route'
 import { resolveRemediation } from '../lib/remediation'
+import { resolveStatus } from '../types/status'
 import DegradedStateCard from './status/DegradedStateCard'
 
 // Deliberately substring-matched, unlike the shared status vocabulary: this is
@@ -109,11 +110,11 @@ export default function LiveCorridorTrafficPanel() {
       ) : data && !data.available ? (
         <DegradedStateCard
           variant="soft"
-          title="Layer not configured"
-          state="NOT_CONFIGURED"
+          title={resolveStatus(data.state ?? 'NOT_CONFIGURED', 'availability').label}
+          state={data.state ?? 'NOT_CONFIGURED'}
           domain="availability"
           message={data.message}
-          hint={resolveRemediation(data.provider, 'NOT_CONFIGURED')}
+          hint={resolveRemediation(data.provider, data.state ?? 'NOT_CONFIGURED')}
         />
       ) : data ? (
         <div className="space-y-4">
