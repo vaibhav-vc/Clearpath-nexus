@@ -32,11 +32,6 @@ class MultimodalPlan(Base):
     cost_completeness: Mapped[float] = mapped_column(Float, nullable=False)
     overall_risk_score: Mapped[float | None] = mapped_column(Float)
     compliance_status: Mapped[str] = mapped_column(String(30), nullable=False)
-    compliance_check_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("compliance_checks.id", ondelete="SET NULL"),
-        index=True,
-    )
     inputs_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
     traceability_summary: Mapped[dict] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -70,6 +65,11 @@ class MultimodalLeg(Base):
     risk_score: Mapped[float | None] = mapped_column(Float)
     risk_source_type: Mapped[str] = mapped_column(String(40), nullable=False)
     compliance_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    compliance_check_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("compliance_checks.id", ondelete="SET NULL"),
+        index=True,
+    )
     source_provider: Mapped[str | None] = mapped_column(String(120))
     source_dataset: Mapped[str | None] = mapped_column(String(160))
     source_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
