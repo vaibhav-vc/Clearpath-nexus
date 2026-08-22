@@ -38,10 +38,6 @@ def _unavailable(state: str, message: str) -> dict[str, Any]:
         "message": message,
     }
 
-# How many trains (max) to pull live status for per corridor query, to stay
-# well inside the free sandbox's 1,000 requests/month.
-_MAX_LIVE_LOOKUPS = 5
-
 
 def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {settings.RAILRADAR_API_KEY}"}
@@ -80,7 +76,7 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
         return cached
 
     try:
-        async with httpx.AsyncClient(timeout=6.0, headers=_headers()) as client:
+        async with httpx.AsyncClient(timeout=settings.RAILRADAR_TIMEOUT_SECONDS, headers=_headers()) as client:
             between_resp = await client.get(
                 f"{settings.RAILRADAR_BASE_URL}/trains/between/{source_code}/{dest_code}"
             )
@@ -93,7 +89,7 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
             trains: list[dict[str, Any]] = []
             alerts: list[str] = []
 
-            for candidate in candidates[:_MAX_LIVE_LOOKUPS]:
+            for candidate in candidates[: settings.RAILRADAR_MAX_LIVE_LOOKUPS]:
                 # /trains/between nests identity under `train`, unlike
                 # /trains/{n}/live which carries trainNumber at the top level.
                 identity = candidate.get("train") or {}
@@ -119,7 +115,7 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
                         delay = live_data.get("delayMinutes")
                         live_entry["status"] = live_data.get("status", "unknown")
                         live_entry["delay_minutes"] = delay
-                        if isinstance(delay, (int, float)) and delay >= 30:
+                        if isinstance(delay, (int, float)) and delay >= settings.RAILRADAR_DELAY_ALERT_MINUTES:
                             alerts.append(
                                 f"{train_number} ({live_entry['train_name']}) running {int(delay)}m late"
                             )
@@ -137,7 +133,7 @@ async def fetch_trains_between(source_code: str, dest_code: str) -> dict[str, An
                 "trains": trains,
                 "alerts": alerts,
             }
-            await space_weather_service._cache_set(cache_key, payload, ttl=120)
+            await space_weather_service._cache_set(cache_key, payload, ttl=settings.RAILRADAR_CACHE_TTL_SECONDS)
             provider_status.record_success("railradar")
             return payload
     except httpx.HTTPStatusError as exc:

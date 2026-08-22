@@ -7,6 +7,12 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import type { EnvironmentalZone, MapCondition, SegmentPath, Station, TrackSegmentDetail, TrainPosition } from '../types/route'
 import MapLegend from './MapLegend'
+import {
+  MAP_CONDITION_RADIUS_M,
+  MAP_DEFAULT_CENTER,
+  MAP_DEFAULT_ZOOM,
+  MAP_ENVIRONMENTAL_ZONE_RADIUS_M,
+} from '../config'
 
 // Leaflet's default icon resolves its images by relative URL, which breaks under
 // a bundler. Bind the bundled assets so station and train markers actually render.
@@ -16,7 +22,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
-const DEFAULT_CENTER: [number, number] = [21.1458, 79.0882]
+// Opening view comes from config so a different network can be deployed
+// without editing JSX.
 
 interface MapViewerProps {
   segments: SegmentPath[]
@@ -53,7 +60,7 @@ export default function MapViewer({
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-slate-700/60 shadow-2xl shadow-blue-950/60">
-      <MapContainer center={DEFAULT_CENTER} zoom={6} className="h-full w-full" scrollWheelZoom>
+      <MapContainer center={MAP_DEFAULT_CENTER} zoom={MAP_DEFAULT_ZOOM} className="h-full w-full" scrollWheelZoom>
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitRoute points={points} />
         {segments.map((segment, index) => (
@@ -63,8 +70,8 @@ export default function MapViewer({
         ))}
         {stations.map((station) => <Marker key={station.id} position={[station.lat, station.lon]}><Popup>{station.name} ({station.code})</Popup></Marker>)}
         {trainPosition && <Marker position={[trainPosition.lat, trainPosition.lon]}><Popup>Current train position</Popup></Marker>}
-        {environmentalZones.map((zone) => zone.coordinates.length > 0 && <Circle key={zone.id} center={[zone.coordinates[0][0], zone.coordinates[0][1]]} radius={12000} pathOptions={{ color: '#f59e0b' }} />)}
-        {mapConditions.map((condition) => <Circle key={condition.id} center={[condition.lat, condition.lon]} radius={5000} pathOptions={{ color: '#fb923c', fillOpacity: 0.12 }} />)}
+        {environmentalZones.map((zone) => zone.coordinates.length > 0 && <Circle key={zone.id} center={[zone.coordinates[0][0], zone.coordinates[0][1]]} radius={MAP_ENVIRONMENTAL_ZONE_RADIUS_M} pathOptions={{ color: '#f59e0b' }} />)}
+        {mapConditions.map((condition) => <Circle key={condition.id} center={[condition.lat, condition.lon]} radius={MAP_CONDITION_RADIUS_M} pathOptions={{ color: '#fb923c', fillOpacity: 0.12 }} />)}
       </MapContainer>
       <div className={`absolute top-3 left-3 z-10 transition-all ${legendCollapsed ? 'w-11' : 'w-[215px]'}`}>
         <MapLegend routeLabel={routeLabel} conditionCount={mapConditions.length} liveWeatherUpdated={liveWeatherUpdated} collapsed={legendCollapsed} onToggle={() => setLegendCollapsed((value) => !value)} />

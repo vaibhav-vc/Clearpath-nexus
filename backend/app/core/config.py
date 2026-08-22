@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     RAILRADAR_BASE_URL: str = "https://api.railradar.in/v1"
     RAILRADAR_CACHE_TTL_SECONDS: int = 7200
     RAILRADAR_MONTHLY_BUDGET: int = 900
+    # Live lookups are the expensive call: one per train, on top of the single
+    # corridor query. Keep this low to stay inside the free monthly budget.
+    RAILRADAR_MAX_LIVE_LOOKUPS: int = 5
+    RAILRADAR_TIMEOUT_SECONDS: float = 6.0
+    # Minimum lateness before a corridor alert is raised.
+    RAILRADAR_DELAY_ALERT_MINUTES: int = 30
     # ixigo does not publish an open developer API in the supplied/current
     # evidence. These settings are only for a separately authorized partner
     # or customer gateway; no private consumer endpoint is scraped.

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchStations, fetchLiveCorridorTraffic, type LiveCorridorTrafficResponse } from '../services/api'
 import type { Station } from '../types/route'
 import { resolveRemediation } from '../lib/remediation'
+import { DEFAULT_DESTINATION_CODE, DEFAULT_ORIGIN_CODE } from '../config'
 import { resolveStatus } from '../types/status'
 import DegradedStateCard from './status/DegradedStateCard'
 
@@ -17,8 +18,8 @@ function statusColor(status: string): string {
 
 export default function LiveCorridorTrafficPanel() {
   const [stations, setStations] = useState<Station[]>([])
-  const [sourceCode, setSourceCode] = useState('NGP')
-  const [destCode, setDestCode] = useState('JNPT')
+  const [sourceCode, setSourceCode] = useState(DEFAULT_ORIGIN_CODE)
+  const [destCode, setDestCode] = useState(DEFAULT_DESTINATION_CODE)
   const [data, setData] = useState<LiveCorridorTrafficResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

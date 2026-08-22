@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import MapViewer from './MapViewer'
+import { DEFAULT_DESTINATION_CODE } from '../config'
 import Simulator from './Simulator'
 import ScoreGauge from './ScoreGauge'
 import MetricBar from './MetricBar'
@@ -21,7 +22,7 @@ export default function CommandDashboard() {
   const [locationStation, setLocationStation] = useState('MMR')
   const [locationLat, setLocationLat] = useState('20.25')
   const [locationLon, setLocationLon] = useState('74.4333')
-  const [destinations, setDestinations] = useState<string[]>(['JNPT'])
+  const [destinations, setDestinations] = useState<string[]>([DEFAULT_DESTINATION_CODE])
   const [trainHours, setTrainHours] = useState('24')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<RouteSuggestResponse | null>(null)

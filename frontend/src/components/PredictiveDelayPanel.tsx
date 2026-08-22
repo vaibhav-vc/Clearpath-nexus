@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../services/api'
+import { DEFAULT_DESTINATION_CODE, DEFAULT_ORIGIN_CODE } from '../config'
 
 interface DelayPredictionData {
   predicted_delay_minutes: number
@@ -12,8 +13,8 @@ interface DelayPredictionData {
 }
 
 export default function PredictiveDelayPanel({
-  sourceCode = 'NGP',
-  destCode = 'JNPT',
+  sourceCode = DEFAULT_ORIGIN_CODE,
+  destCode = DEFAULT_DESTINATION_CODE,
   cargoWeight = 120,
 }: {
   sourceCode?: string

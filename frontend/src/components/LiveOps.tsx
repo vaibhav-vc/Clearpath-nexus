@@ -12,6 +12,7 @@ import StatusBadge from './status/StatusBadge'
 import DegradedStateCard from './status/DegradedStateCard'
 import { resolveRemediation } from '../lib/remediation'
 import { resolveStatus } from '../types/status'
+import { LIVEOPS_REFRESH_MS } from '../config'
 
 /**
  * The backend only lets a model drive decisions when it is BOTH marked
@@ -61,7 +62,7 @@ export default function LiveOps() {
 
   useEffect(() => {
     void refresh()
-    const interval = window.setInterval(() => void refresh(), 15_000)
+    const interval = window.setInterval(() => void refresh(), LIVEOPS_REFRESH_MS)
     return () => window.clearInterval(interval)
   }, [refresh])
 
